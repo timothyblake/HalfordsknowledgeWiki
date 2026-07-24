@@ -79,7 +79,7 @@ export const onRequest = defineMiddleware((context, next) => {
 
   try {
     const authValue = authHeader.split(' ')[1] || '';
-    const decoded = Buffer.from(authValue, 'base64').toString('utf-8');
+    const decoded = atob(authValue);
     const colonIndex = decoded.indexOf(':');
     if (colonIndex === -1) {
       return unauthorizedResponse();
