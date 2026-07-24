@@ -65,6 +65,12 @@ function unauthorizedResponse() {
 }
 
 export const onRequest = defineMiddleware((context, next) => {
+  // Bypass password protection completely when running on localhost / dev mode
+  const host = context.url.hostname;
+  if (import.meta.env.DEV || host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local')) {
+    return next();
+  }
+
   const authHeader = context.request.headers.get('authorization');
 
   if (!authHeader) {
