@@ -1,9 +1,13 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import vue from '@astrojs/vue';
+import vercel from '@astrojs/vercel';
 
 // https://astro.build/config
 export default defineConfig({
+	adapter: vercel({
+		edgeMiddleware: true,
+	}),
 	integrations: [
 		starlight({
 			title: 'Knowledge Wiki',
