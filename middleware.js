@@ -1,3 +1,7 @@
+export const config = {
+  matcher: '/:path*',
+};
+
 export function middleware(request) {
   const authHeader = request.headers.get('authorization');
 
