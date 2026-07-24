@@ -1,6 +1,7 @@
 ---
 title: Getting Started
 description: Learn the basics of using the Quick Link Tool.
+slug: quick-link-tool/getting-started
 ---
 
 The Quick Link Tool is designed to save you time by bringing a useful collection of shortcuts together in one place. You can switch a page URL between live and staging, quickly find the category ID for the page you are viewing, and access other common tools in a single click.

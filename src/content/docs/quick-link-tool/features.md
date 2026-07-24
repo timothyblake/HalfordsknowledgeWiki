@@ -1,6 +1,7 @@
 ---
 title: Feature Guide
 description: Learn what each Quick Link Tool action does on the Halfords website.
+slug: quick-link-tool/features
 ---
 
 The Quick Link Tool is a browser bookmarklet for `halfords.com` and `halfords.ie`. Open a Halfords page, select the bookmark, and choose an action to inspect the page, copy useful values, navigate between environments, or remove test data.

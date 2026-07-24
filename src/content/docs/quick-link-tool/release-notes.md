@@ -1,6 +1,7 @@
 ---
 title: Release Notes
 description: Version notes and change history for the Quick Link Tool.
+slug: quick-link-tool/release-notes
 ---
 
 ## Version 1.3.5
