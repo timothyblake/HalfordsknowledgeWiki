@@ -35,4 +35,10 @@ export function middleware(request) {
       headers: { 'WWW-Authenticate': 'Basic realm="Halfords Wiki"' },
     });
   }
+
+  return new Response(null, {
+    headers: {
+      'x-middleware-next': '1',
+    },
+  });
 }
