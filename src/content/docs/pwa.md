@@ -1,6 +1,7 @@
 ---
 title: Progressive Web Apps (PWA)
 description: Overview and documentation for Progressive Web Apps integration and features.
+slug: pwa
 ---
 
 Welcome to the Progressive Web Apps (PWA) section. This section contains guides, features, and technical documentation for building and installing PWAs.
