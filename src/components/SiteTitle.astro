@@ -1,0 +1,49 @@
+---
+import type { Props } from '@astrojs/starlight/props';
+---
+
+<a href={Astro.props.siteTitleHref || '/'} class="site-title sl-flex">
+	<svg class="brain-icon" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+		<path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"></path>
+		<path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"></path>
+		<path d="M12 5v13"></path>
+		<path d="M9.5 9a2 2 0 0 0-1.5 2.5"></path>
+		<path d="M14.5 9a2 2 0 0 1 1.5 2.5"></path>
+	</svg>
+	<span class="site-title-text">
+		Knowledge Wiki <span class="site-author">| Tim Blake</span>
+	</span>
+</a>
+
+<style>
+	.site-title {
+		align-items: center;
+		gap: 0.6rem;
+		font-size: var(--sl-text-h4);
+		font-weight: 700;
+		color: #000000 !important;
+		text-decoration: none;
+		line-height: var(--sl-line-height-headings);
+	}
+
+	.site-title:hover,
+	.site-title:focus {
+		color: #000000 !important;
+		opacity: 0.85;
+	}
+
+	.brain-icon {
+		flex-shrink: 0;
+		color: #000000 !important;
+	}
+
+	.site-title-text {
+		color: #000000 !important;
+	}
+
+	.site-author {
+		font-weight: 300;
+		color: #000000 !important;
+		opacity: 0.75;
+	}
+</style>

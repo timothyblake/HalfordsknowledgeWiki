@@ -1,0 +1,15 @@
+---
+title: Product Information Images
+description: Create and export branded product-information graphics.
+---
+
+import ProductInformationGenerator from '../../../components/image-generators/ProductInformationGenerator.vue';
+
+export const headings = [
+  { depth: 2, slug: 'live-preview', text: 'Live Preview' },
+  { depth: 2, slug: 'image-configurator', text: 'Image Configurator' },
+];
+
+Use the configurator to create a product-information graphic. Edit the title and bullet points, adjust the typography and corner radius, then export the finished image as a high-resolution PNG or JPEG.
+
+<ProductInformationGenerator client:load />
