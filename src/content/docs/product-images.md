@@ -19,6 +19,10 @@ Generate five-star product review graphics in bulk by pasting CSV data (`SKU`, `
 
 Create a product-information graphic with a title and custom bullet points. Add or remove points, adjust the typography and corner radius, and export the finished image.
 
+### [Bulk Product Information Images](/product-images/bulk-product-information/)
+
+Generate product information graphics in bulk by pasting CSV data (`SKU`, `Title`, `Bullets` delimited by `|`). Adjust text sizes, preview all generated cards, and export them as individual PNG/JPEG images or download all graphics in a single ZIP archive.
+
 ## Included features
 
 - Live canvas preview while editing

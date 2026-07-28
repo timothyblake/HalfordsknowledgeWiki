@@ -41,14 +41,18 @@ export default defineConfig({
 						{ label: 'Product Review Images', slug: 'product-images/product-review-images' },
 						{ label: 'Bulk Product Review Images', slug: 'product-images/bulk-product-review-images' },
 						{ label: 'Product Information Images', slug: 'product-images/product-information' },
+						{ label: 'Bulk Product Information Images', slug: 'product-images/bulk-product-information' },
 					],
 				},
 				{
 					label: 'Web Trends',
-					items: [{ label: 'Overview', slug: 'web-trends' }],
+					items: [
+						{ label: 'Overview', slug: 'web-trends' },
+						{ label: 'Route Change Handling', slug: 'web-trends/route-change-handling' },
+					],
 				},
 				{
-					label: 'PWA',
+					label: 'Hal PWA',
 					items: [{ label: 'Overview', slug: 'pwa' }],
 				},
 			],

@@ -1,0 +1,54 @@
+---
+title: WebTrends Optimize
+description: Technical documentation, execution guides, and best practices for WebTrends Optimize (WTO) A/B testing and experimentation.
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+Welcome to the **WebTrends Optimize (WTO)** technical documentation portal. This section provides guidelines, code patterns, and performance standards for building, deploying, and maintaining A/B tests and personalization experiments on the WebTrends platform.
+
+## Experimentation Guides
+
+<CardGrid>
+	<Card title="Route Change Handling" icon="setting">
+		Prevent duplicate test execution, cloned DOM elements, and active `MutationObserver` memory leaks when users update filters, VRN lookups, or URL query parameters.
+
+		[Read Route Change Guide →](/web-trends/route-change-handling/)
+	</Card>
+	<Card title="Web Trends Overview" icon="open-book">
+		Explore core architecture principles for building clean, isolated, and performant A/B test scripts on client-side SPA applications.
+	</Card>
+</CardGrid>
+
+---
+
+## Core Experimentation Standards
+
+When building WTO experiments, ensure all scripts follow these technical standards:
+
+### 1. Scoped Namespace & Config Object
+Always wrap test logic inside an IIFE and define a clean `Config` object with a unique `testAlias`:
+
+```javascript
+(function() {
+    const Config = {
+        testAlias: 'WTO_1234_FeatureName'
+    };
+    // Experiment logic...
+})();
+```
+
+### 2. Defensive DOM Manipulation & Cleanup
+- **Remove pre-existing elements**: Never assume an element is rendered only once. Query for and remove previous test elements before injecting new ones.
+- **Disconnect observers on route change**: Store `MutationObserver` instances in references and disconnect them when `WTO-route-change` fires.
+
+### 3. Asynchronous Element Detection
+Use `MutationObserver` or element detection polling rather than static `setTimeout` calls to guarantee elements are present before modifying the page.
+
+---
+
+## Quick Reference Links
+
+- 🛠️ [Route Change Handling Guide](/web-trends/route-change-handling/)
+- 🖼️ [Image Generators](/product-images/)
+- 🔗 [Quick Link Tool](/quick-link-tool/getting-started/)

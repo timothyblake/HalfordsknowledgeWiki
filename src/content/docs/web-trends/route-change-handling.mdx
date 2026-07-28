@@ -1,0 +1,99 @@
+---
+title: Route Change Event Handling
+description: Prevent WebTrends Optimize tests, DOM observers, and elements from duplicating on SPA route or URL parameter changes.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+When running WebTrends Optimize (WTO) experiments on single-page applications or dynamic pages, URL modifications—such as applying filter options, updating Vehicle Registration Number (VRN) lookup details, or changing pagination—trigger a re-execution of the test script.
+
+Without proper event guards and cleanup logic, this default behavior can cause:
+- **Duplicate DOM elements** (e.g. multiple banners, badges, or callouts injected into the DOM).
+- **Multiple active MutationObservers** running concurrently, leading to memory leaks and performance degradation.
+- **Redundant event listeners** attached to the same interactive elements.
+
+## Solution Code Snippet
+
+Use a window-level flag scoped to your experiment's `testAlias` to guard event listener registration and ensure test setup functions are invoked cleanly.
+
+```javascript
+if (!window[`${Config.testAlias}--routchChangeEvent`]) {
+    document.addEventListener('WTO-route-change', function() {
+        // Disconnect MutationObservers here and remove injected banners/elements
+    });
+    
+    // Add all function calls here to prevent multiple calls whenever a change is made to the URL
+    
+    window[`${Config.testAlias}--routchChangeEvent`] = true;
+}
+```
+
+## How It Works
+
+<Steps>
+
+1. **Flag Check (`!window[...]`)**
+   Checks whether the route change handler for this specific test alias has already been registered. This prevents multiple listeners from accumulating during repeated navigation events.
+
+2. **`WTO-route-change` Event Listener**
+   Listens for WebTrends Optimize's native route change event (`WTO-route-change`). Whenever a URL parameter, filter, or VRN update occurs:
+   - Disconnect active `MutationObserver` instances.
+   - Clean up or remove previously injected DOM elements (e.g. promotional banners, custom badges).
+
+3. **Single Execution Guard**
+   Executes primary test setup functions once, then sets `window[${Config.testAlias}--routchChangeEvent] = true` to lock in the registration.
+
+</Steps>
+
+## Example Implementation
+
+Below is a complete pattern for a WTO experiment script using this guard pattern:
+
+```javascript
+(function() {
+    const Config = {
+        testAlias: 'WTO_1234_BannerTest'
+    };
+
+    let observer = null;
+
+    function removeCustomBanner() {
+        const existingBanner = document.querySelector('.wto-custom-banner');
+        if (existingBanner) {
+            existingBanner.remove();
+        }
+    }
+
+    function initTest() {
+        removeCustomBanner();
+        
+        // Example: Inject custom banner
+        const targetContainer = document.querySelector('#main-content');
+        if (targetContainer) {
+            const banner = document.createElement('div');
+            banner.className = 'wto-custom-banner';
+            banner.innerText = 'Special Promotion Available!';
+            targetContainer.prepend(banner);
+        }
+    }
+
+    // Guard against multiple route listener registrations
+    if (!window[`${Config.testAlias}--routchChangeEvent`]) {
+        document.addEventListener('WTO-route-change', function() {
+            // Disconnect active observer to avoid memory leaks
+            if (observer) {
+                observer.disconnect();
+                observer = null;
+            }
+            // Remove DOM modifications prior to re-render
+            removeCustomBanner();
+        });
+
+        // Initialize test logic
+        initTest();
+
+        // Mark route change handler as registered
+        window[`${Config.testAlias}--routchChangeEvent`] = true;
+    }
+})();
+```

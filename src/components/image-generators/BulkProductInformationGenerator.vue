@@ -2,42 +2,43 @@
 import { ref, onMounted, watch, nextTick } from 'vue';
 import JSZip from 'jszip';
 
-type ReviewRow = {
+interface InfoRow {
 	id: string;
 	sku: string;
 	title: string;
-	review: string;
-};
+	bullets: string[];
+}
 
 const csvInput = ref('');
-const titleSize = ref(76);
-const reviewSize = ref(76);
+const titleSize = ref(96);
+const bulletSize = ref(52);
+const cornerRadius = ref(32);
 const format = ref<'png' | 'jpeg'>('png');
 const statusMessage = ref('');
 
-const parsedRows = ref<ReviewRow[]>([]);
+const parsedRows = ref<InfoRow[]>([]);
 const canvasMap = new Map<string, HTMLCanvasElement>();
 
-const width = 2160;
-const height = 1540;
-const bubbleBottom = 1350;
-const bubbleColour = '#f2f2f2';
-const textColour = '#252525';
-const fontFamily = '"Aktiv Grotesk", Arial, sans-serif';
-
-let starsImage: HTMLImageElement;
-let startQuoteImage: HTMLImageElement;
-let endQuoteImage: HTMLImageElement;
-let assetsReady = false;
-
-const setCanvasRef = (el: any, rowId: string) => {
+const setCanvasRef = (el: Element | null | any, id: string) => {
 	if (el && el instanceof HTMLCanvasElement) {
-		canvasMap.set(rowId, el);
+		canvasMap.set(id, el);
+	} else {
+		canvasMap.delete(id);
 	}
 };
 
-const parseCSV = (text: string): ReviewRow[] => {
-	const rows: string[][] = [];
+const width = 1400;
+const height = 980;
+const padding = 120;
+const background = '#f2f2f2';
+const textColour = '#252525';
+const fontFamily = '"Aktiv Grotesk", Arial, sans-serif';
+
+const parseCSV = (text: string): InfoRow[] => {
+	const firstLine = text.split(/\r?\n/)[0] || '';
+	const delimiter = (firstLine.includes('\t') && !firstLine.includes(',')) ? '\t' : ',';
+
+	const lines: string[][] = [];
 	let currentRow: string[] = [];
 	let currentCell = '';
 	let inQuotes = false;
@@ -53,14 +54,14 @@ const parseCSV = (text: string): ReviewRow[] => {
 			} else {
 				inQuotes = !inQuotes;
 			}
-		} else if ((char === ',' || char === '\t') && !inQuotes) {
+		} else if (char === delimiter && !inQuotes) {
 			currentRow.push(currentCell.trim());
 			currentCell = '';
 		} else if ((char === '\r' || char === '\n') && !inQuotes) {
 			if (char === '\r' && nextChar === '\n') i++;
 			currentRow.push(currentCell.trim());
 			if (currentRow.some((cell) => cell.length > 0)) {
-				rows.push(currentRow);
+				lines.push(currentRow);
 			}
 			currentRow = [];
 			currentCell = '';
@@ -68,47 +69,84 @@ const parseCSV = (text: string): ReviewRow[] => {
 			currentCell += char;
 		}
 	}
-	if (currentCell.length > 0 || currentRow.length > 0) {
+	if (currentCell || currentRow.length > 0) {
 		currentRow.push(currentCell.trim());
 		if (currentRow.some((cell) => cell.length > 0)) {
-			rows.push(currentRow);
+			lines.push(currentRow);
 		}
 	}
 
-	if (rows.length === 0) return [];
+	if (lines.length === 0) return [];
 
 	let startIndex = 0;
 	let skuIdx = 0;
 	let titleIdx = 1;
-	let reviewIdx = 2;
+	let bulletsIdx = 2;
+	let isMultiColumnBullets = false;
 
-	const firstRowLower = rows[0].map((cell) => cell.toLowerCase());
+	const firstRowLower = lines[0].map((cell) => cell.toLowerCase());
 	const hasHeader = firstRowLower.some((cell) =>
-		['sku', 'product', 'title', 'headline', 'review', 'message', 'text', 'copy'].some((term) => cell.includes(term))
+		['sku', 'code', 'item', 'title', 'headline', 'name', 'bullet', 'bullets', 'point', 'points', 'feature', 'features'].some((term) => cell.includes(term))
 	);
 
 	if (hasHeader) {
 		startIndex = 1;
 		firstRowLower.forEach((colHeader, idx) => {
-			if (colHeader.includes('sku') || colHeader.includes('product') || colHeader.includes('code')) skuIdx = idx;
-			else if (colHeader.includes('title') || colHeader.includes('head') || colHeader.includes('subject')) titleIdx = idx;
-			else if (colHeader.includes('review') || colHeader.includes('text') || colHeader.includes('copy') || colHeader.includes('message') || colHeader.includes('comment')) reviewIdx = idx;
+			if (colHeader.includes('sku') || colHeader.includes('code') || colHeader.includes('item')) skuIdx = idx;
+			else if (colHeader.includes('title') || colHeader.includes('name') || colHeader.includes('headline')) titleIdx = idx;
+			else if (colHeader.includes('bullet') || colHeader.includes('point') || colHeader.includes('feature') || colHeader.includes('detail')) {
+				if (!isMultiColumnBullets) bulletsIdx = idx;
+				if (colHeader.includes('1') || colHeader.includes('2') || colHeader.includes('3')) isMultiColumnBullets = true;
+			}
 		});
 	}
 
-	const result: ReviewRow[] = [];
-	for (let i = startIndex; i < rows.length; i++) {
-		const row = rows[i];
-		const sku = row[skuIdx] ?? '';
-		const title = row[titleIdx] ?? '';
-		const review = row[reviewIdx] ?? '';
+	const result: InfoRow[] = [];
+	for (let i = startIndex; i < lines.length; i++) {
+		const row = lines[i];
+		const sku = (row[skuIdx] ?? '').replace(/^['"]+|['"]+$/g, '');
+		const title = (row[titleIdx] ?? '').replace(/^['"]+|['"]+$/g, '');
 
-		if (sku || title || review) {
+		const bulletList: string[] = [];
+
+		if (isMultiColumnBullets) {
+			// Gather bullets from multiple columns (e.g. Bullet 1, Bullet 2, Bullet 3...)
+			row.forEach((cell, idx) => {
+				if (idx !== skuIdx && idx !== titleIdx) {
+					const cleanCell = cell.replace(/^['"]+|['"]+$/g, '').trim();
+					if (cleanCell) bulletList.push(cleanCell);
+				}
+			});
+		} else {
+			// Gather bullets from single column (split on pipe '|', semicolon ';', or newline)
+			const rawBullets = (row[bulletsIdx] ?? '').replace(/^['"]+|['"]+$/g, '');
+			if (rawBullets) {
+				const splitBullets = rawBullets
+					.split(/\||;|\r?\n/)
+					.map((b) => b.trim())
+					.filter(Boolean);
+				bulletList.push(...splitBullets);
+			}
+
+			// If no bullets found in designated column, check any remaining columns
+			if (bulletList.length === 0 && row.length > 2) {
+				row.slice(2).forEach((cell) => {
+					const cleanCell = cell.replace(/^['"]+|['"]+$/g, '').trim();
+					if (cleanCell) {
+						cleanCell.split(/\||;|\r?\n/).forEach((b) => {
+							if (b.trim()) bulletList.push(b.trim());
+						});
+					}
+				});
+			}
+		}
+
+		if (sku || title || bulletList.length > 0) {
 			result.push({
-				id: `row-${i}-${Date.now()}`,
-				sku: sku.replace(/^['"]+|['"]+$/g, ''),
-				title: title.replace(/^['"]+|['"]+$/g, ''),
-				review: review.replace(/^['"]+|['"]+$/g, ''),
+				id: `info-row-${i}-${Date.now()}`,
+				sku,
+				title,
+				bullets: bulletList,
 			});
 		}
 	}
@@ -116,26 +154,19 @@ const parseCSV = (text: string): ReviewRow[] => {
 	return result;
 };
 
-const drawSpeechBubble = (context: CanvasRenderingContext2D) => {
-	const radius = 82;
-	const tailStart = 178;
-	const tailEnd = 345;
+const roundedRectPath = (context: CanvasRenderingContext2D, x: number, y: number, rectWidth: number, rectHeight: number, radius: number) => {
+	const safeRadius = Math.max(0, Math.min(radius, rectWidth / 2, rectHeight / 2));
 	context.beginPath();
-	context.moveTo(radius, 0);
-	context.lineTo(width - radius, 0);
-	context.quadraticCurveTo(width, 0, width, radius);
-	context.lineTo(width, bubbleBottom - radius);
-	context.quadraticCurveTo(width, bubbleBottom, width - radius, bubbleBottom);
-	context.lineTo(tailEnd, bubbleBottom);
-	context.lineTo(tailStart, height);
-	context.lineTo(tailStart, bubbleBottom);
-	context.lineTo(radius, bubbleBottom);
-	context.quadraticCurveTo(0, bubbleBottom, 0, bubbleBottom - radius);
-	context.lineTo(0, radius);
-	context.quadraticCurveTo(0, 0, radius, 0);
+	context.moveTo(x + safeRadius, y);
+	context.lineTo(x + rectWidth - safeRadius, y);
+	context.quadraticCurveTo(x + rectWidth, y, x + rectWidth, y + safeRadius);
+	context.lineTo(x + rectWidth, y + rectHeight - safeRadius);
+	context.quadraticCurveTo(x + rectWidth, y + rectHeight, x + rectWidth - safeRadius, y + rectHeight);
+	context.lineTo(x + safeRadius, y + rectHeight);
+	context.quadraticCurveTo(x, y + rectHeight, x, y + rectHeight - safeRadius);
+	context.lineTo(x, y + safeRadius);
+	context.quadraticCurveTo(x, y, x + safeRadius, y);
 	context.closePath();
-	context.fillStyle = bubbleColour;
-	context.fill();
 };
 
 const breakLongWord = (context: CanvasRenderingContext2D, word: string, maxWidth: number) => {
@@ -152,88 +183,119 @@ const breakLongWord = (context: CanvasRenderingContext2D, word: string, maxWidth
 	return fragments;
 };
 
-const wrapText = (context: CanvasRenderingContext2D, text: string, maxWidth: number) => {
+const wrapParagraph = (context: CanvasRenderingContext2D, text: string, maxWidth: number) => {
+	const words = text.trim().split(/\s+/).filter(Boolean);
 	const lines: string[] = [];
-	for (const paragraph of text.split(/\r?\n/)) {
-		const words = paragraph.trim().split(/\s+/).filter(Boolean);
-		let line = '';
-		for (const word of words) {
-			const candidate = line ? `${line} ${word}` : word;
-			if (context.measureText(candidate).width <= maxWidth) {
-				line = candidate;
-				continue;
-			}
-			if (line) lines.push(line);
-			line = '';
-			if (context.measureText(word).width <= maxWidth) line = word;
-			else {
-				const fragments = breakLongWord(context, word, maxWidth);
-				lines.push(...fragments.slice(0, -1));
-				line = fragments.at(-1) ?? '';
-			}
+	let line = '';
+
+	for (const word of words) {
+		const candidate = line ? `${line} ${word}` : word;
+		if (context.measureText(candidate).width <= maxWidth) {
+			line = candidate;
+			continue;
 		}
 		if (line) lines.push(line);
-		if (!paragraph.trim()) lines.push('');
+		line = '';
+		if (context.measureText(word).width <= maxWidth) line = word;
+		else {
+			const fragments = breakLongWord(context, word, maxWidth);
+			lines.push(...fragments.slice(0, -1));
+			line = fragments.at(-1) ?? '';
+		}
 	}
+	if (line) lines.push(line);
 	return lines;
 };
 
-const drawCentredLines = (context: CanvasRenderingContext2D, lines: string[], startY: number, lineHeight: number) => {
-	context.textAlign = 'center';
-	context.textBaseline = 'top';
-	lines.forEach((line, index) => context.fillText(line, width / 2, startY + index * lineHeight));
+const wrapText = (context: CanvasRenderingContext2D, text: string, maxWidth: number) =>
+	text.split(/\r?\n/).flatMap((paragraph) => (paragraph.trim() ? wrapParagraph(context, paragraph, maxWidth) : ['']));
+
+const measureLayout = (context: CanvasRenderingContext2D, row: InfoRow, tSize: number, bSize: number) => {
+	const maxTextWidth = width - padding * 2;
+	context.font = `800 ${tSize}px ${fontFamily}`;
+	const titleLines = row.title ? wrapText(context, row.title, maxTextWidth) : [];
+	const titleLineHeight = tSize * 1.1;
+
+	context.font = `400 ${bSize}px ${fontFamily}`;
+	const pointTextWidth = maxTextWidth - 44;
+	const pointLines = row.bullets.map((point) => wrapText(context, point, pointTextWidth));
+	const bulletLineHeight = bSize * 1.35;
+	const bulletGap = Math.max(26, bSize * 0.58);
+	const titleHeight = titleLines.length * titleLineHeight;
+	const bulletsHeight = pointLines.reduce((total, lines, index) => total + lines.length * bulletLineHeight + (index < pointLines.length - 1 ? bulletGap : 0), 0);
+	const sectionGap = titleLines.length && pointLines.length ? 52 : 0;
+
+	return {
+		titleLines,
+		pointLines,
+		titleLineHeight,
+		bulletLineHeight,
+		bulletGap,
+		sectionGap,
+		totalHeight: padding * 2 + titleHeight + sectionGap + bulletsHeight,
+	};
 };
 
-const renderReviewCanvas = (canvas: HTMLCanvasElement, row: ReviewRow) => {
+const renderInfoCanvas = (canvas: HTMLCanvasElement, row: InfoRow) => {
 	const ctx = canvas.getContext('2d');
 	if (!ctx) return;
 
 	canvas.width = width;
 	canvas.height = height;
 
+	let actualTitleSize = Number(titleSize.value);
+	let actualBulletSize = Number(bulletSize.value);
+	let layout = measureLayout(ctx, row, actualTitleSize, actualBulletSize);
+	let attempts = 0;
+
+	while (layout.totalHeight > height && attempts < 160 && (actualTitleSize > 28 || actualBulletSize > 18)) {
+		const scale = Math.max(0.92, Math.min(0.985, height / layout.totalHeight));
+		actualTitleSize = Math.max(28, actualTitleSize * scale);
+		actualBulletSize = Math.max(18, actualBulletSize * scale);
+		layout = measureLayout(ctx, row, actualTitleSize, actualBulletSize);
+		attempts += 1;
+	}
+
 	ctx.clearRect(0, 0, width, height);
-	drawSpeechBubble(ctx);
-	if (assetsReady) {
-		ctx.drawImage(starsImage, 580, 185, 1000, 181);
-		ctx.drawImage(startQuoteImage, 95, 620, 160, 130);
-		ctx.drawImage(endQuoteImage, width - 255, 950, 160, 130);
-	}
 
-	let currentTitleSize = Number(titleSize.value);
-	ctx.font = `800 ${currentTitleSize}px ${fontFamily}`;
-	while (ctx.measureText(row.title).width > 1600 && currentTitleSize > 48) {
-		currentTitleSize -= 2;
-		ctx.font = `800 ${currentTitleSize}px ${fontFamily}`;
-	}
+	// Background
+	roundedRectPath(ctx, 0, 0, width, height, Number(cornerRadius.value));
+	ctx.fillStyle = background;
+	ctx.fill();
+
+	ctx.save();
+	roundedRectPath(ctx, 0, 0, width, height, Number(cornerRadius.value));
+	ctx.clip();
+
+	// Title
+	ctx.font = `800 ${actualTitleSize}px ${fontFamily}`;
 	ctx.fillStyle = textColour;
-	ctx.textAlign = 'center';
+	ctx.textAlign = 'left';
 	ctx.textBaseline = 'top';
-	ctx.fillText(row.title, width / 2, 500);
+	let y = padding;
 
-	let currentReviewSize = Number(reviewSize.value);
-	let lineHeight = currentReviewSize * 1.28;
-	ctx.font = `400 ${currentReviewSize}px ${fontFamily}`;
-	let reviewLines = row.review ? wrapText(ctx, row.review, 1560) : [];
-	while (reviewLines.length * lineHeight > 430 && currentReviewSize > 38) {
-		currentReviewSize -= 2;
-		lineHeight = currentReviewSize * 1.28;
-		ctx.font = `400 ${currentReviewSize}px ${fontFamily}`;
-		reviewLines = wrapText(ctx, row.review, 1560);
-	}
+	layout.titleLines.forEach((line) => {
+		ctx.fillText(line, padding, y);
+		y += layout.titleLineHeight;
+	});
 
-	const reviewHeight = reviewLines.length * lineHeight;
-	const reviewY = 740 + Math.max(0, (310 - reviewHeight) / 2);
-	ctx.fillStyle = textColour;
-	ctx.font = `400 ${currentReviewSize}px ${fontFamily}`;
-	drawCentredLines(ctx, reviewLines, reviewY, lineHeight);
+	if (layout.titleLines.length && layout.pointLines.length) y += layout.sectionGap;
+
+	// Bullets
+	ctx.font = `400 ${actualBulletSize}px ${fontFamily}`;
+	layout.pointLines.forEach((lines, pointIndex) => {
+		ctx.fillText('•', padding, y - actualBulletSize * 0.04);
+		lines.forEach((line) => {
+			ctx.fillText(line, padding + 44, y);
+			y += layout.bulletLineHeight;
+		});
+		if (pointIndex < layout.pointLines.length - 1) y += layout.bulletGap;
+	});
+
+	ctx.restore();
 };
 
-const renderAllReviews = async () => {
-	if (!assetsReady) {
-		statusMessage.value = 'Artwork assets are still loading. Please wait a moment.';
-		return;
-	}
-
+const renderAllCards = async () => {
 	const rawCSV = csvInput.value.trim();
 	if (!rawCSV) {
 		statusMessage.value = 'Please paste CSV data into the text box above.';
@@ -254,23 +316,23 @@ const renderAllReviews = async () => {
 	parsedRows.value.forEach((row) => {
 		const canvas = canvasMap.get(row.id);
 		if (canvas) {
-			renderReviewCanvas(canvas, row);
+			renderInfoCanvas(canvas, row);
 		}
 	});
 
-	statusMessage.value = `Successfully generated ${parsedRows.value.length} review image ${parsedRows.value.length === 1 ? 'graphic' : 'graphics'}.`;
+	statusMessage.value = `Successfully generated ${parsedRows.value.length} product information ${parsedRows.value.length === 1 ? 'image' : 'images'}.`;
 };
 
-const getFilename = (row: ReviewRow, fmt: string): string => {
+const getFilename = (row: InfoRow, fmt: string): string => {
 	const ext = fmt === 'jpeg' ? 'jpg' : 'png';
 	let baseName = row.sku.trim();
 	if (!baseName) {
-		baseName = row.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'product-review';
+		baseName = row.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'product-information';
 	}
 	return `${baseName}.${ext}`;
 };
 
-const exportSingleImage = (row: ReviewRow) => {
+const exportSingleImage = (row: InfoRow) => {
 	const sourceCanvas = canvasMap.get(row.id);
 	if (!sourceCanvas) return;
 
@@ -305,7 +367,7 @@ const exportSingleImage = (row: ReviewRow) => {
 	}, mimeType, 0.94);
 };
 
-const copySingleImage = async (row: ReviewRow) => {
+const copySingleImage = async (row: InfoRow) => {
 	const sourceCanvas = canvasMap.get(row.id);
 	if (!sourceCanvas) return;
 
@@ -390,7 +452,7 @@ const exportAllAsZip = async () => {
 	const url = URL.createObjectURL(content);
 	const link = document.createElement('a');
 	link.href = url;
-	link.download = `product-review-images-${Date.now()}.zip`;
+	link.download = `product-information-images-${Date.now()}.zip`;
 	link.click();
 	URL.revokeObjectURL(url);
 
@@ -405,46 +467,26 @@ const clearInput = () => {
 	statusMessage.value = 'Input cleared.';
 };
 
-const loadImage = (source: string) => new Promise<HTMLImageElement>((resolve, reject) => {
-	const img = new Image();
-	img.addEventListener('load', () => resolve(img), { once: true });
-	img.addEventListener('error', () => reject(new Error(`Could not load ${source}`)), { once: true });
-	img.src = source;
-});
-
 const loadFonts = async () => {
 	if ('fonts' in document) {
 		await Promise.all([
-			document.fonts.load('800 76px "Aktiv Grotesk"'),
-			document.fonts.load('400 76px "Aktiv Grotesk"'),
+			document.fonts.load('800 96px "Aktiv Grotesk"'),
+			document.fonts.load('400 52px "Aktiv Grotesk"'),
 			document.fonts.ready,
 		]);
 	}
 };
 
 onMounted(async () => {
-	try {
-		const [_, stars, startQ, endQ] = await Promise.all([
-			loadFonts(),
-			loadImage('/product-review-assets/stars.svg'),
-			loadImage('/product-review-assets/speech-marks-start.svg'),
-			loadImage('/product-review-assets/speech-marks-end.svg'),
-		]);
-		starsImage = stars;
-		startQuoteImage = startQ;
-		endQuoteImage = endQ;
-		assetsReady = true;
-		if (csvInput.value.trim()) {
-			renderAllReviews();
-		}
-	} catch (e) {
-		statusMessage.value = 'Artwork assets could not be loaded. Please refresh the page.';
+	await loadFonts();
+	if (csvInput.value.trim()) {
+		renderAllCards();
 	}
 });
 
-watch([csvInput, titleSize, reviewSize, format], () => {
+watch([csvInput, titleSize, bulletSize, cornerRadius, format], () => {
 	if (csvInput.value.trim()) {
-		renderAllReviews();
+		renderAllCards();
 	} else {
 		parsedRows.value = [];
 		canvasMap.clear();
@@ -453,7 +495,7 @@ watch([csvInput, titleSize, reviewSize, format], () => {
 </script>
 
 <template>
-	<section class="bulk-product-review-generator" aria-labelledby="bulk-generator">
+	<section class="bulk-product-info-generator" aria-labelledby="bulk-info-generator">
 		<div class="bulk-layout">
 			<!-- Configuration Panel -->
 			<form class="configurator" @submit.prevent>
@@ -461,18 +503,18 @@ watch([csvInput, titleSize, reviewSize, format], () => {
 					<svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22">
 						<path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
 					</svg>
-					<h2 id="bulk-generator">Bulk Review Image Configurator</h2>
+					<h2 id="bulk-info-generator">Bulk Product Info Configurator</h2>
 				</div>
 				<hr class="heading-hr" />
 
 				<div class="control-group">
 					<div class="csv-header">
-						<label for="bulk-csv-input">CSV Data (Paste below)</label>
-						<a href="/product-review-assets/product-reviews-template.csv" download="product-reviews-template.csv" class="download-template-link">Download Example CSV</a>
+						<label for="bulk-info-csv-input">CSV Data (Paste below)</label>
+						<a href="/product-review-assets/product-information-template.csv" download="product-information-template.csv" class="download-template-link">Download Example CSV</a>
 					</div>
-					<p class="field-hint">Format: <code>SKU, Review Title, Review Text</code> (Headers are auto-detected, quotes & multi-line values supported).</p>
+					<p class="field-hint">Format: <code>SKU, Title, Bullets</code> (Separate multiple bullets using pipe <code>|</code>, e.g. <code>Bullet 1|Bullet 2|Bullet 3</code>).</p>
 					<textarea
-						id="bulk-csv-input"
+						id="bulk-info-csv-input"
 						v-model="csvInput"
 						rows="7"
 						placeholder="Paste in CSV data"
@@ -483,16 +525,24 @@ watch([csvInput, titleSize, reviewSize, format], () => {
 					<div class="range-field">
 						<label for="bulk-title-size">Title Size</label>
 						<div class="range-row">
-							<input id="bulk-title-size" v-model.number="titleSize" type="range" min="56" max="130" />
+							<input id="bulk-title-size" v-model.number="titleSize" type="range" min="48" max="140" />
 							<output for="bulk-title-size">{{ titleSize }}</output>
 						</div>
 					</div>
 
 					<div class="range-field">
-						<label for="bulk-review-size">Text Size</label>
+						<label for="bulk-bullet-size">Bullet Size</label>
 						<div class="range-row">
-							<input id="bulk-review-size" v-model.number="reviewSize" type="range" min="40" max="105" />
-							<output for="bulk-review-size">{{ reviewSize }}</output>
+							<input id="bulk-bullet-size" v-model.number="bulletSize" type="range" min="28" max="80" />
+							<output for="bulk-bullet-size">{{ bulletSize }}</output>
+						</div>
+					</div>
+
+					<div class="range-field">
+						<label for="bulk-corner-radius">Corner Radius</label>
+						<div class="range-row">
+							<input id="bulk-corner-radius" v-model.number="cornerRadius" type="range" min="0" max="96" />
+							<output for="bulk-corner-radius">{{ cornerRadius }}</output>
 						</div>
 					</div>
 
@@ -506,9 +556,9 @@ watch([csvInput, titleSize, reviewSize, format], () => {
 				</div>
 
 				<div class="action-bar">
-					<button class="primary-button" type="button" @click="renderAllReviews">
+					<button class="primary-button" type="button" @click="renderAllCards">
 						<svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-						Generate Review Images
+						Generate Product Information Images
 					</button>
 
 					<button class="zip-button" type="button" :disabled="parsedRows.length === 0 || isExportingZip" @click="exportAllAsZip">
@@ -525,10 +575,10 @@ watch([csvInput, titleSize, reviewSize, format], () => {
 			</form>
 
 			<!-- Generated Items Container -->
-			<section class="results-section" aria-labelledby="generated-reviews">
+			<section class="results-section" aria-labelledby="generated-info-images">
 				<div class="results-header">
-					<h2 id="generated-reviews">Generated Review Images</h2>
-					<span class="count-badge">{{ parsedRows.length }} {{ parsedRows.length === 1 ? 'Review image' : 'Review images' }}</span>
+					<h2 id="generated-info-images">Generated Product Information Images</h2>
+					<span class="count-badge">{{ parsedRows.length }} {{ parsedRows.length === 1 ? 'Product image' : 'Product images' }}</span>
 				</div>
 				<hr class="heading-hr" />
 
@@ -539,10 +589,10 @@ watch([csvInput, titleSize, reviewSize, format], () => {
 							<circle cx="8.5" cy="8.5" r="1.5"/>
 							<polyline points="21 15 16 10 5 21"/>
 						</svg>
-						<p>No review images generated yet. Paste your CSV copy above and click <strong>Generate Review Images</strong>.</p>
+						<p>No product information images generated yet. Paste your CSV copy above and click <strong>Generate Product Information Images</strong>.</p>
 					</div>
 
-					<div v-for="(row, index) in parsedRows" :key="row.id" class="review-card">
+					<div v-for="(row, index) in parsedRows" :key="row.id" class="info-card">
 						<div class="card-header">
 							<span class="sku-badge">{{ row.sku ? `SKU: ${row.sku}` : `Item #${index + 1}` }}</span>
 						</div>
@@ -551,7 +601,7 @@ watch([csvInput, titleSize, reviewSize, format], () => {
 							<canvas
 								:ref="(el) => setCanvasRef(el, row.id)"
 								role="img"
-								:aria-label="`Review graphic for ${row.sku || row.title}`"
+								:aria-label="`Product info graphic for ${row.sku || row.title}`"
 							></canvas>
 						</div>
 
@@ -597,7 +647,7 @@ watch([csvInput, titleSize, reviewSize, format], () => {
 		font-display: swap;
 	}
 
-	.bulk-product-review-generator {
+	.bulk-product-info-generator {
 		--ui-background: #ffffff;
 		--ui-foreground: #09090b;
 		--ui-muted: #f4f4f5;
@@ -721,7 +771,7 @@ watch([csvInput, titleSize, reviewSize, format], () => {
 
 	.settings-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 		gap: 1.25rem;
 		background: var(--ui-muted);
 		padding: 1rem;
@@ -794,13 +844,6 @@ watch([csvInput, titleSize, reviewSize, format], () => {
 		cursor: pointer;
 		transition: background-color 150ms ease, opacity 150ms ease;
 		border: 1px solid transparent;
-	}
-
-	.primary-button svg,
-	.zip-button svg,
-	.secondary-button svg {
-		display: block;
-		flex-shrink: 0;
 	}
 
 	.primary-button {
@@ -885,67 +928,53 @@ watch([csvInput, titleSize, reviewSize, format], () => {
 		color: var(--ui-muted-foreground);
 	}
 
-	.empty-state svg {
-		margin-bottom: 0.75rem;
-		opacity: 0.6;
-	}
-
-	.empty-state p {
-		margin: 0;
-		font-size: 0.9rem;
-	}
-
-	.review-card {
-		width: min(100%, 44rem);
-		box-sizing: border-box;
+	.info-card {
+		width: 100%;
+		max-width: 700px;
+		background: var(--ui-background);
 		border: 1px solid var(--ui-border);
-		border-radius: 0.6rem;
-		background: #ffffff;
-		padding: 1rem;
+		border-radius: 0.75rem;
+		padding: 1.25rem;
+		box-shadow: 0 2px 6px rgb(0 0 0 / 4%);
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
-		box-shadow: 0 2px 8px rgb(0 0 0 / 4%);
+		gap: 1rem;
 	}
 
 	.card-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 0.5rem;
 	}
 
 	.sku-badge {
-		font-size: 0.7rem;
-		font-weight: 800;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		background: #000;
-		color: #fff;
-		padding: 0.2rem 0.45rem;
-		border-radius: 0.25rem;
-		white-space: nowrap;
+		font-size: 0.78rem;
+		font-weight: 700;
+		color: var(--ui-muted-foreground);
+		background: var(--ui-muted);
+		padding: 0.2rem 0.55rem;
+		border-radius: 0.35rem;
 	}
 
 	.card-preview-shell {
 		width: 100%;
-		border-radius: 0.35rem;
+		background: #fff;
+		border-radius: 0.5rem;
 		overflow: hidden;
-		box-shadow: 0 4px 12px rgb(0 0 0 / 6%);
-		background: #f2f2f2;
+		border: 1px solid var(--ui-border);
 	}
 
-	.card-preview-shell canvas {
+	canvas {
 		display: block;
 		width: 100%;
 		height: auto;
-		aspect-ratio: 216 / 154;
+		aspect-ratio: 1400 / 980;
 	}
 
 	.card-actions {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 0.5rem;
+		gap: 0.75rem;
 		margin-top: auto;
 		align-items: center;
 	}
@@ -955,19 +984,19 @@ watch([csvInput, titleSize, reviewSize, format], () => {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.35rem;
-		height: 2.2rem;
-		padding: 0 0.5rem;
+		gap: 0.4rem;
+		height: 2.3rem;
+		padding: 0 0.6rem;
 		margin: 0;
 		box-sizing: border-box;
-		border-radius: 0.4rem;
 		font: inherit;
-		font-size: 0.78rem;
+		font-size: 0.8rem;
 		font-weight: 700;
 		line-height: 1;
 		vertical-align: middle;
+		border-radius: 0.4rem;
 		cursor: pointer;
-		transition: background-color 150ms ease, border-color 150ms ease;
+		transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 		border: 1px solid var(--ui-border);
 	}
 

@@ -1,0 +1,37 @@
+---
+title: Bulk Product Information Images
+description: Generate and export bulk product information graphics with title and bullet points from CSV data.
+---
+
+import BulkProductInformationGenerator from '../../../components/image-generators/BulkProductInformationGenerator.vue';
+
+export const headings = [
+  { depth: 3, slug: 'csv-structure-requirements', text: 'CSV Structure Requirements' },
+  { depth: 2, slug: 'bulk-info-generator', text: 'Bulk Product Information Configurator' },
+  { depth: 2, slug: 'generated-info-images', text: 'Generated Product Information Images' },
+];
+
+Paste CSV data into the text field below to generate product information graphics (1400 × 980 pixels) in bulk. Adjust global text sizing and corner radius if needed, then export all images as a ZIP archive or download/copy them individually.
+
+### CSV Structure Requirements
+
+Your CSV file should be formatted with the following columns:
+
+- **`SKU`** (Column 1): Product item code used for badge display and export filename.
+- **`Title`** (Column 2): Main headline displayed at the top of the information graphic.
+- **`Bullets`** (Column 3): Bullet point text. Separate multiple bullet points using a pipe character (`|`), semicolon (`;`), or line breaks.
+
+> **Note:** Headers are automatically detected. Encapsulate strings containing commas in quotation marks. You can also download our [example CSV template](/product-review-assets/product-information-template.csv).
+
+#### Example CSV Format
+
+```csv
+SKU,Title,Bullets
+HAL-DIAG-01,"Diagnostic Check","Quickly identify the cause of warning lights|Peace of mind that your vehicle is in safe condition|Receive expert advice and recommendations from technicians"
+HAL-AIRCON-02,"Air Con Service","Full system diagnostic & pressure test|Recharge refrigerant gas and lubricant|Eliminate bad odours and bacteria"
+HAL-BATT-03,"Battery Health Check","Free 5-minute comprehensive battery test|Printout results provided on completion|No appointment required – visit any store"
+```
+
+## Bulk Product Information Generator
+
+<BulkProductInformationGenerator client:load />

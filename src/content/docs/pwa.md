@@ -1,6 +1,6 @@
 ---
-title: Progressive Web Apps (PWA)
-description: Overview and documentation for Progressive Web Apps integration and features.
+title: Hal PWA
+description: Overview and documentation for Hal Progressive Web Apps integration and features.
 slug: pwa
 ---
 
