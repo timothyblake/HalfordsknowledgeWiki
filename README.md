@@ -4,6 +4,8 @@
 
 A modern, fast documentation portal and internal suite of interactive image generation tools built with **Astro 5**, **Starlight**, and **Vue 3**.
 
+**Production:** [knowledgewiki.vercel.app](https://knowledgewiki.vercel.app/)
+
 ---
 
 ## 🌟 Key Features
