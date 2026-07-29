@@ -4,6 +4,18 @@ description: Version notes and change history for the Quick Link Tool.
 slug: quick-link-tool/release-notes
 ---
 
+## Version 1.3.7
+
+**29/07/2026**
+
+Added a label next to the Halfords logo in the widget, making it easier to identify the Quick Link Tool when referencing it to the team.
+
+## Version 1.3.6
+
+**29/07/2026**
+
+Made the widget compatible with mobile, so the Quick Link Tool now works across all devices, including mobile and desktop.
+
 ## Version 1.3.5
 
 **17/07/2026**

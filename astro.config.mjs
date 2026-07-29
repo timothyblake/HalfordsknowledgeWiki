@@ -49,11 +49,18 @@ export default defineConfig({
 					items: [
 						{ label: 'Overview', slug: 'web-trends' },
 						{ label: 'Route Change Handling', slug: 'web-trends/route-change-handling' },
+						{ label: 'Enabling Staging Mode', slug: 'web-trends/staging-mode' },
 					],
 				},
 				{
 					label: 'Hal PWA',
 					items: [{ label: 'Overview', slug: 'pwa' }],
+				},
+				{
+					label: 'Salesforce',
+					items: [
+						{ label: 'Salesforce Syntax', slug: 'salesforce/salesforce-syntax' },
+					],
 				},
 			],
 		}),

@@ -1,0 +1,36 @@
+---
+title: Enabling Staging Mode
+description: Append ?_wt.mode=staging to a URL to preview unpublished WebTrends Optimize experiments.
+---
+
+WebTrends Optimize supports a query parameter that forces the platform into **staging mode**, allowing you to preview experiments that are still in draft/QA before they go live to real traffic.
+
+## Usage
+
+Append the following query parameter to the end of any URL:
+
+```
+?_wt.mode=staging
+```
+
+For example:
+
+```
+https://staging.halfords.com/category/wheels?_wt.mode=staging
+```
+
+If the URL already has query parameters, append it with `&` instead of `?`:
+
+```
+https://staging.halfords.com/search?q=tyres&_wt.mode=staging
+```
+
+## What it does
+
+- Forces WTO to load and run experiments that are currently in **Draft**, **QA**, or otherwise not yet published to live traffic.
+- Lets you validate targeting, variant rendering, and script behaviour before turning a test on for real users.
+- Does not affect reporting/analytics for live visitors — it only changes what the current browser session sees.
+
+:::note
+This only affects the current browser tab/session. Other users browsing the site are unaffected.
+:::
