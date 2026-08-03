@@ -1,6 +1,6 @@
 ---
-title: Hal PWA
-description: Overview and documentation for Hal Progressive Web Apps integration and features.
+title: Halfords PWA
+description: Overview and documentation for Halfords Progressive Web Apps integration and features.
 slug: pwa
 ---
 

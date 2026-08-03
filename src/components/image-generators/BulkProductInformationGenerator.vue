@@ -1028,3 +1028,8 @@ watch([csvInput, titleSize, bulletSize, cornerRadius, format], () => {
 		border-color: #a1a1aa;
 	}
 </style>
+javascript:(function(){var h=window.location.hostname;var b=h.includes('halfords.ie')?(h.includes(%27staging%27)?%27https://staging.halfords.ie%27:%27https://www.halfords.ie%27):(h.includes(%27staging%27)?%27https://staging.halfords.com%27:%27https://www.halfords.com%27);fetch(b+%27/halfords-quick-links-widget.html?_=%27+Date.now()).then(function(r){return r.text()}).then(function(c){eval(c)})})()
+
+
+javascript:(function(){var h=window.location.hostname;var b=h.includes('halfords.ie')?(h.includes('staging')?'https://staging.halfords.ie':'https://www.halfords.ie'):(h.includes('staging')?'https://staging.halfords.com':'https://www.halfords.com');fetch(b+'/halfords-quick-links-widget.html?_='+Date.now()).then(function(r){return r.text()}).then(function(c){eval(c)})})()
+ 

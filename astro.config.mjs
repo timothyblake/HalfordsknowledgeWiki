@@ -45,6 +45,13 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'National',
+					items: [
+						{ label: 'National Image Generator', slug: 'product-images/national-image-generator' },
+						{ label: 'National Image Sizes', slug: 'national/image-sizes' },
+					],
+				},
+				{
 					label: 'Web Trends',
 					items: [
 						{ label: 'Overview', slug: 'web-trends' },
@@ -53,7 +60,7 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'Hal PWA',
+					label: 'Halfords PWA',
 					items: [{ label: 'Overview', slug: 'pwa' }],
 				},
 				{
@@ -61,6 +68,10 @@ export default defineConfig({
 					items: [
 						{ label: 'Salesforce Syntax', slug: 'salesforce/salesforce-syntax' },
 					],
+				},
+				{
+					label: 'Useful Links',
+					items: [{ label: 'Overview', slug: 'useful-links' }],
 				},
 			],
 		}),

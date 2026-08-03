@@ -28,15 +28,37 @@ const fontFamily = '"Aktiv Grotesk", Arial, sans-serif';
 let starsImage: HTMLImageElement;
 let startQuoteImage: HTMLImageElement;
 let endQuoteImage: HTMLImageElement;
-let assetsReady = false;
+const assetsReady = ref(false);
 
 const setCanvasRef = (el: any, rowId: string) => {
 	if (el && el instanceof HTMLCanvasElement) {
 		canvasMap.set(rowId, el);
+	} else {
+		canvasMap.delete(rowId);
 	}
 };
 
+const detectDelimiter = (text: string) => {
+	const counts = { ',': 0, '\t': 0, ';': 0 };
+	let inQuotes = false;
+
+	for (let i = 0; i < text.length; i++) {
+		const char = text[i];
+		if (char === '"') {
+			if (inQuotes && text[i + 1] === '"') i++;
+			else inQuotes = !inQuotes;
+		} else if (!inQuotes && (char === '\r' || char === '\n')) {
+			break;
+		} else if (!inQuotes && char in counts) {
+			counts[char as keyof typeof counts]++;
+		}
+	}
+
+	return (Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || ',') as ',' | '\t' | ';';
+};
+
 const parseCSV = (text: string): ReviewRow[] => {
+	const delimiter = detectDelimiter(text);
 	const rows: string[][] = [];
 	let currentRow: string[] = [];
 	let currentCell = '';
@@ -53,7 +75,7 @@ const parseCSV = (text: string): ReviewRow[] => {
 			} else {
 				inQuotes = !inQuotes;
 			}
-		} else if ((char === ',' || char === '\t') && !inQuotes) {
+		} else if (char === delimiter && !inQuotes) {
 			currentRow.push(currentCell.trim());
 			currentCell = '';
 		} else if ((char === '\r' || char === '\n') && !inQuotes) {
@@ -82,17 +104,22 @@ const parseCSV = (text: string): ReviewRow[] => {
 	let titleIdx = 1;
 	let reviewIdx = 2;
 
-	const firstRowLower = rows[0].map((cell) => cell.toLowerCase());
-	const hasHeader = firstRowLower.some((cell) =>
-		['sku', 'product', 'title', 'headline', 'review', 'message', 'text', 'copy'].some((term) => cell.includes(term))
-	);
+	const normaliseHeader = (cell: string) => cell.toLowerCase().trim().replace(/[\s_-]+/g, ' ');
+	const firstRowHeaders = rows[0].map(normaliseHeader);
+	const skuHeaders = new Set(['sku', 'product sku', 'product code', 'item code', 'code']);
+	const titleHeaders = new Set(['review title', 'title', 'headline', 'subject']);
+	const reviewHeaders = new Set(['review text', 'review', 'text', 'copy', 'message', 'comment']);
+	const recognisedHeaders = firstRowHeaders.filter((header) =>
+		skuHeaders.has(header) || titleHeaders.has(header) || reviewHeaders.has(header)
+	).length;
+	const hasHeader = recognisedHeaders >= 2;
 
 	if (hasHeader) {
 		startIndex = 1;
-		firstRowLower.forEach((colHeader, idx) => {
-			if (colHeader.includes('sku') || colHeader.includes('product') || colHeader.includes('code')) skuIdx = idx;
-			else if (colHeader.includes('title') || colHeader.includes('head') || colHeader.includes('subject')) titleIdx = idx;
-			else if (colHeader.includes('review') || colHeader.includes('text') || colHeader.includes('copy') || colHeader.includes('message') || colHeader.includes('comment')) reviewIdx = idx;
+		firstRowHeaders.forEach((colHeader, idx) => {
+			if (skuHeaders.has(colHeader)) skuIdx = idx;
+			else if (titleHeaders.has(colHeader)) titleIdx = idx;
+			else if (reviewHeaders.has(colHeader)) reviewIdx = idx;
 		});
 	}
 
@@ -105,7 +132,7 @@ const parseCSV = (text: string): ReviewRow[] => {
 
 		if (sku || title || review) {
 			result.push({
-				id: `row-${i}-${Date.now()}`,
+				id: `row-${i}`,
 				sku: sku.replace(/^['"]+|['"]+$/g, ''),
 				title: title.replace(/^['"]+|['"]+$/g, ''),
 				review: review.replace(/^['"]+|['"]+$/g, ''),
@@ -193,7 +220,7 @@ const renderReviewCanvas = (canvas: HTMLCanvasElement, row: ReviewRow) => {
 
 	ctx.clearRect(0, 0, width, height);
 	drawSpeechBubble(ctx);
-	if (assetsReady) {
+	if (assetsReady.value) {
 		ctx.drawImage(starsImage, 580, 185, 1000, 181);
 		ctx.drawImage(startQuoteImage, 95, 620, 160, 130);
 		ctx.drawImage(endQuoteImage, width - 255, 950, 160, 130);
@@ -229,7 +256,7 @@ const renderReviewCanvas = (canvas: HTMLCanvasElement, row: ReviewRow) => {
 };
 
 const renderAllReviews = async () => {
-	if (!assetsReady) {
+	if (!assetsReady.value) {
 		statusMessage.value = 'Artwork assets are still loading. Please wait a moment.';
 		return;
 	}
@@ -433,7 +460,7 @@ onMounted(async () => {
 		starsImage = stars;
 		startQuoteImage = startQ;
 		endQuoteImage = endQ;
-		assetsReady = true;
+		assetsReady.value = true;
 		if (csvInput.value.trim()) {
 			renderAllReviews();
 		}
@@ -442,13 +469,13 @@ onMounted(async () => {
 	}
 });
 
-watch([csvInput, titleSize, reviewSize, format], () => {
-	if (csvInput.value.trim()) {
-		renderAllReviews();
-	} else {
-		parsedRows.value = [];
-		canvasMap.clear();
-	}
+watch([titleSize, reviewSize], async () => {
+	if (!assetsReady.value || parsedRows.value.length === 0) return;
+	await nextTick();
+	parsedRows.value.forEach((row) => {
+		const canvas = canvasMap.get(row.id);
+		if (canvas) renderReviewCanvas(canvas, row);
+	});
 });
 </script>
 
@@ -506,7 +533,7 @@ watch([csvInput, titleSize, reviewSize, format], () => {
 				</div>
 
 				<div class="action-bar">
-					<button class="primary-button" type="button" @click="renderAllReviews">
+					<button class="primary-button" type="button" :disabled="!assetsReady || !csvInput.trim()" @click="renderAllReviews">
 						<svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
 						Generate Review Images
 					</button>
@@ -929,10 +956,8 @@ watch([csvInput, titleSize, reviewSize, format], () => {
 
 	.card-preview-shell {
 		width: 100%;
-		border-radius: 0.35rem;
-		overflow: hidden;
-		box-shadow: 0 4px 12px rgb(0 0 0 / 6%);
-		background: #f2f2f2;
+		background: #fff;
+		filter: drop-shadow(0 10px 24px rgb(15 23 42 / 8%));
 	}
 
 	.card-preview-shell canvas {

@@ -1,0 +1,363 @@
+---
+import "@fontsource/montserrat/latin-400.css";
+import "@fontsource/montserrat/latin-700.css";
+
+// National website placement dimensions and crop-safe diagrams.
+const sections = [
+	{
+		title: "Homepage",
+		items: [
+			{
+				label: "One size",
+				size: "600 × 400",
+				image: "/national-image-assets/sizes/homepage-600x400.png",
+				alt: "Homepage 600 by 400 pixel layout showing safe margins and CTA position",
+				compact: true,
+			},
+		],
+	},
+	{
+		title: "Homepage & Tyre Carousels",
+		items: [
+			{
+				label: "Desktop",
+				size: "570 × 380",
+				image: "/national-image-assets/sizes/carousel-desktop-570x380.png",
+				alt: "Desktop carousel 570 by 380 pixel crop-safe layout",
+			},
+			{
+				label: "Tablet",
+				size: "380 × 440",
+				image: "/national-image-assets/sizes/carousel-tablet-380x440.jpg",
+				alt: "Tablet carousel 380 by 440 pixel crop-safe layout",
+				compact: true,
+			},
+			{
+				label: "Mobile",
+				size: "768 × 380",
+				image: "/national-image-assets/sizes/mobile-768x380.jpg",
+				alt: "Mobile carousel 768 by 380 pixel crop-safe layout",
+				wide: true,
+			},
+		],
+	},
+	{
+		title: "MOT, Servicing & Wheel Alignment Carousels",
+		items: [
+			{
+				label: "Desktop",
+				size: "627 × 300",
+				image: "/national-image-assets/sizes/msw-desktop-627x300.jpg",
+				alt: "MOT servicing and wheel alignment desktop 627 by 300 pixel layout",
+			},
+			{
+				label: "Tablet",
+				size: "430 × 300",
+				image: "/national-image-assets/sizes/msw-tablet-430x300.jpg",
+				alt: "MOT servicing and wheel alignment tablet 430 by 300 pixel layout",
+			},
+			{
+				label: "Mobile",
+				size: "768 × 380",
+				image: "/national-image-assets/sizes/mobile-768x380.jpg",
+				alt: "MOT servicing and wheel alignment mobile 768 by 380 pixel layout",
+				wide: true,
+			},
+		],
+	},
+	{
+		title: "Discount Code Image",
+		items: [
+			{
+				label: "One size",
+				size: "360 × 355",
+				image: "/national-image-assets/sizes/discount-code-360x355.jpg",
+				alt: "Discount code image 360 by 355 pixel layout",
+				compact: true,
+			},
+		],
+	},
+];
+---
+
+<div class="national-size-guide">
+	<div class="guide-heading">
+		<div class="heading-title">
+			<svg aria-hidden="true" viewBox="0 0 24 24">
+				<path
+					d="M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 2v10.59l3.3-3.3a1 1 0 0 1 1.4 0l2.3 2.3 4.3-4.3a1 1 0 0 1 1.4 0l3.3 3.3V5H4Zm16 14v-2.59l-4-4-4.3 4.3a1 1 0 0 1-1.4 0L8 14.41 4 18.41V19h16ZM8.5 7A1.5 1.5 0 1 1 7 8.5 1.5 1.5 0 0 1 8.5 7Z"
+				></path>
+			</svg>
+			<div>
+				<h2>Digital Asset Sizes</h2>
+				<p>National Tyres and Autocare</p>
+			</div>
+		</div>
+		<span class="size-count">7 placements</span>
+	</div>
+	<hr />
+
+	<div class="guide-note">
+		<svg aria-hidden="true" viewBox="0 0 24 24">
+			<path
+				d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Zm0-15.25a1.25 1.25 0 1 1 0 2.5 1.25 1.25 0 0 1 0-2.5Zm-1.25 4h2.5v6.5h-2.5v-6.5Z"
+			></path>
+		</svg>
+		<p>
+			The dark grey areas in the diagrams may be cropped at certain
+			breakpoints. Keep important text and artwork inside the lighter safe
+			area. For questions, email <a href="mailto:tim.blake@halfords.co.uk"
+				>tim.blake@halfords.co.uk</a
+			>.
+		</p>
+	</div>
+
+	<div class="section-list">
+		{
+			sections.map((section) => (
+				<section class="size-section">
+					<h2>{section.title}</h2>
+					<div class="size-grid">
+						{section.items.map((item) => (
+							<article
+								class:list={[
+									"size-card",
+									{ wide: item.wide, compact: item.compact },
+								]}
+							>
+								<header>
+									<div>
+										<h3>{item.label}</h3>
+										<p>{item.size} px</p>
+									</div>
+									<span>{item.size}</span>
+								</header>
+								<div class="diagram-frame">
+									<img
+										src={item.image}
+										alt={item.alt}
+										loading="lazy"
+									/>
+								</div>
+							</article>
+						))}
+					</div>
+				</section>
+			))
+		}
+	</div>
+</div>
+
+<style>
+	.national-size-guide {
+		--ui-background: var(--sl-color-bg);
+		--ui-foreground: var(--sl-color-text);
+		--ui-muted: var(--sl-color-bg-nav);
+		--ui-muted-foreground: var(--sl-color-gray-2);
+		--ui-border: var(--sl-color-gray-5);
+		margin-block: 1.25rem 2rem;
+		color: var(--ui-foreground);
+		font-family: "Montserrat", var(--sl-font-system);
+	}
+
+	.guide-heading {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.heading-title {
+		display: flex;
+		align-items: center;
+		gap: 0.65rem;
+	}
+
+	.heading-title > svg {
+		flex: none;
+		width: 2rem;
+		height: 2rem;
+		padding: 0.4rem;
+		fill: currentColor;
+		background: var(--ui-muted);
+		border-radius: 0.5rem;
+	}
+
+	.guide-heading h2,
+	.guide-heading p {
+		margin: 0;
+		padding: 0;
+		border: 0;
+	}
+
+	.guide-heading h2 {
+		font-size: 1.25rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+	}
+
+	.guide-heading p {
+		margin-top: 0.15rem;
+		color: var(--ui-muted-foreground);
+		font-size: 0.78rem;
+	}
+
+	.size-count {
+		flex: none;
+		padding: 0.35rem 0.65rem;
+		color: var(--ui-foreground);
+		background: var(--ui-muted);
+		border: 1px solid var(--ui-border);
+		border-radius: 999px;
+		font-size: 0.75rem;
+		font-weight: 700;
+	}
+
+	.national-size-guide > hr {
+		margin: 0.75rem 0 1.25rem;
+		border: 0;
+		border-top: 1px solid var(--ui-border);
+	}
+
+	.guide-note {
+		display: flex;
+		gap: 0.8rem;
+		align-items: flex-start;
+		padding: 1rem;
+		color: var(--ui-foreground);
+		background: var(--ui-muted);
+		border: 1px solid var(--ui-border);
+		border-radius: 0.5rem;
+	}
+
+	.guide-note svg {
+		flex: none;
+		width: 1.25rem;
+		color: var(--ui-muted-foreground);
+		fill: currentColor;
+	}
+
+	.guide-note p {
+		margin: 0;
+		font-size: 0.875rem;
+		line-height: 1.55;
+	}
+
+	.guide-note a {
+		color: var(--sl-color-text-accent);
+		font-weight: 700;
+	}
+
+	.section-list {
+		display: grid;
+		gap: 1rem;
+		margin-top: 1rem;
+	}
+
+	.size-section {
+		padding: clamp(1rem, 3vw, 1.5rem);
+		background: var(--ui-background);
+		border: 1px solid var(--ui-border);
+		border-radius: 0.75rem;
+		box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+	}
+
+	.size-section > h2 {
+		margin: 0 0 1rem;
+		padding: 0 0 0.75rem;
+		color: var(--ui-foreground);
+		border-bottom: 1px solid var(--ui-border);
+		font-size: 1rem;
+		letter-spacing: -0.02em;
+	}
+
+	.size-grid {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.size-card {
+		min-width: 0;
+		padding: 0.85rem;
+		background: var(--ui-background);
+		border: 1px solid var(--ui-border);
+		border-radius: 0.5rem;
+		box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
+	}
+
+	.size-card.wide {
+		grid-column: 1 / -1;
+	}
+
+	.size-card header {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 0.75rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.size-card h3,
+	.size-card p {
+		margin: 0;
+	}
+
+	.size-card h3 {
+		color: var(--ui-foreground);
+		font-size: 1rem;
+	}
+
+	.size-card p {
+		margin-top: 0.1rem;
+		color: var(--ui-muted-foreground);
+		font-size: 0.8rem;
+	}
+
+	.size-card header > span {
+		padding: 0.25rem 0.5rem;
+		color: var(--ui-foreground);
+		background: var(--ui-muted);
+		border: 1px solid var(--ui-border);
+		border-radius: 0.4rem;
+		font-size: 0.72rem;
+		font-weight: 700;
+		white-space: nowrap;
+	}
+
+	.diagram-frame {
+		display: grid;
+		min-height: 12rem;
+		place-items: center;
+		overflow: hidden;
+		padding: 0.5rem;
+		background: var(--ui-muted);
+		border: 1px solid var(--ui-border);
+		border-radius: 0.4rem;
+	}
+
+	.diagram-frame img {
+		display: block;
+		width: 100%;
+		height: auto;
+		box-shadow: none;
+	}
+
+	@media (max-width: 46rem) {
+		.guide-heading {
+			align-items: flex-start;
+		}
+
+		.size-count {
+			display: none;
+		}
+
+		.size-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.size-card.wide {
+			grid-column: auto;
+		}
+	}
+
+</style>
