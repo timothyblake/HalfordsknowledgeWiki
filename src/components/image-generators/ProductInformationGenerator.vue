@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
+
+type InformationTemplate = 'title-bullets' | 'detailed-information';
+
+const template = ref<InformationTemplate>('title-bullets');
 
 const title = ref('Diagnostic Check');
 const titleSize = ref(96);
@@ -10,13 +14,28 @@ const bullets = ref<string[]>([
 ]);
 const bulletSize = ref(52);
 const cornerRadius = ref(32);
+const detailedTitle = ref('30-Point Car Safety Inspection');
+const detailedSubtitle = ref("What's included?");
+const detailedIntroduction = ref('A combination of basic and complex checks to ensure your vehicle is in full working order. Some of the safety checks include:');
+const detailedBullets = ref<string[]>([
+	'Exhaust System',
+	'Power Steering System',
+	'Brake Hydraulic System',
+	'Wheel Bearings',
+	'Exterior Lights',
+	'Screenwash Top-up',
+]);
+const detailedTitleSize = ref(72);
+const detailedSubtitleSize = ref(48);
+const detailedBodySize = ref(40);
+const detailedCornerRadius = ref(48);
 const format = ref<'png' | 'jpeg'>('png');
 const statusMessage = ref('');
 
 const previewCanvas = ref<HTMLCanvasElement | null>(null);
 
-const width = 1400;
-const height = 980;
+const canvasWidth = computed(() => template.value === 'detailed-information' ? 1600 : 1400);
+const canvasHeight = computed(() => template.value === 'detailed-information' ? 900 : 980);
 const padding = 120;
 const background = '#f2f2f2';
 const textColour = '#252525';
@@ -91,7 +110,7 @@ const wrapText = (context: CanvasRenderingContext2D, text: string, maxWidth: num
 	text.split(/\r?\n/).flatMap((paragraph) => paragraph.trim() ? wrapParagraph(context, paragraph, maxWidth) : ['']);
 
 const measureLayout = (context: CanvasRenderingContext2D, tSize: number, bSize: number) => {
-	const maxTextWidth = width - padding * 2;
+	const maxTextWidth = canvasWidth.value - padding * 2;
 	context.font = `800 ${tSize}px ${fontFamily}`;
 	const titleLines = title.value ? wrapText(context, title.value, maxTextWidth) : [];
 	const titleLineHeight = tSize * 1.1;
@@ -143,28 +162,132 @@ const drawBulletPoints = (context: CanvasRenderingContext2D, points: string[][],
 	return y;
 };
 
+const detailedPadding = 80;
+
+const measureDetailedLayout = (context: CanvasRenderingContext2D, titleFontSize: number, subtitleFontSize: number, bodyFontSize: number) => {
+	const maxTextWidth = canvasWidth.value - detailedPadding * 2;
+
+	context.font = `800 ${titleFontSize}px ${fontFamily}`;
+	const titleLines = detailedTitle.value ? wrapText(context, detailedTitle.value, maxTextWidth) : [];
+	const titleLineHeight = titleFontSize * 1.08;
+
+	context.font = `700 ${subtitleFontSize}px ${fontFamily}`;
+	const subtitleLines = detailedSubtitle.value ? wrapText(context, detailedSubtitle.value, maxTextWidth) : [];
+	const subtitleLineHeight = subtitleFontSize * 1.14;
+
+	context.font = `400 ${bodyFontSize}px ${fontFamily}`;
+	const introductionLines = detailedIntroduction.value ? wrapText(context, detailedIntroduction.value, maxTextWidth) : [];
+	const bodyLineHeight = bodyFontSize * 1.28;
+	const bulletTextWidth = maxTextWidth - 34;
+	const bulletLines = detailedBullets.value.filter(Boolean).map((point) => wrapText(context, point, bulletTextWidth));
+	const bulletGap = Math.max(7, bodyFontSize * 0.16);
+	const titleGap = titleLines.length && subtitleLines.length ? 28 : 0;
+	const subtitleGap = subtitleLines.length && introductionLines.length ? 24 : 0;
+	const introductionGap = introductionLines.length && bulletLines.length ? 22 : 0;
+	const bulletsHeight = bulletLines.reduce((total, lines, index) => total + lines.length * bodyLineHeight + (index < bulletLines.length - 1 ? bulletGap : 0), 0);
+
+	return {
+		titleLines,
+		subtitleLines,
+		introductionLines,
+		bulletLines,
+		titleLineHeight,
+		subtitleLineHeight,
+		bodyLineHeight,
+		bulletGap,
+		titleGap,
+		subtitleGap,
+		introductionGap,
+		totalHeight: detailedPadding * 2
+			+ titleLines.length * titleLineHeight
+			+ titleGap
+			+ subtitleLines.length * subtitleLineHeight
+			+ subtitleGap
+			+ introductionLines.length * bodyLineHeight
+			+ introductionGap
+			+ bulletsHeight,
+	};
+};
+
+const drawLines = (context: CanvasRenderingContext2D, lines: string[], font: string, x: number, startY: number, lineHeight: number) => {
+	context.font = font;
+	context.fillStyle = textColour;
+	context.textBaseline = 'top';
+	let y = startY;
+	for (const line of lines) {
+		context.fillText(line, x, y);
+		y += lineHeight;
+	}
+	return y;
+};
+
+const renderDetailedInformation = (context: CanvasRenderingContext2D) => {
+	let actualTitleSize = Number(detailedTitleSize.value);
+	let actualSubtitleSize = Number(detailedSubtitleSize.value);
+	let actualBodySize = Number(detailedBodySize.value);
+	let layout = measureDetailedLayout(context, actualTitleSize, actualSubtitleSize, actualBodySize);
+	let attempts = 0;
+
+	while (layout.totalHeight > canvasHeight.value && attempts < 160 && actualBodySize > 20) {
+		const scale = Math.max(0.92, Math.min(0.985, canvasHeight.value / layout.totalHeight));
+		actualTitleSize = Math.max(34, actualTitleSize * scale);
+		actualSubtitleSize = Math.max(26, actualSubtitleSize * scale);
+		actualBodySize = Math.max(20, actualBodySize * scale);
+		layout = measureDetailedLayout(context, actualTitleSize, actualSubtitleSize, actualBodySize);
+		attempts += 1;
+	}
+
+	drawBackground(context, canvasWidth.value, canvasHeight.value, background, Number(detailedCornerRadius.value));
+	context.save();
+	roundedRectPath(context, 0, 0, canvasWidth.value, canvasHeight.value, Number(detailedCornerRadius.value));
+	context.clip();
+
+	let y = drawLines(context, layout.titleLines, `800 ${actualTitleSize}px ${fontFamily}`, detailedPadding, detailedPadding, layout.titleLineHeight);
+	y += layout.titleGap;
+	y = drawLines(context, layout.subtitleLines, `700 ${actualSubtitleSize}px ${fontFamily}`, detailedPadding, y, layout.subtitleLineHeight);
+	y += layout.subtitleGap;
+	y = drawLines(context, layout.introductionLines, `400 ${actualBodySize}px ${fontFamily}`, detailedPadding, y, layout.bodyLineHeight);
+	y += layout.introductionGap;
+	drawBulletPoints(context, layout.bulletLines, actualBodySize, detailedPadding, y, layout.bodyLineHeight, layout.bulletGap);
+	context.restore();
+
+	const wasScaled = actualTitleSize < Number(detailedTitleSize.value) - 0.5
+		|| actualSubtitleSize < Number(detailedSubtitleSize.value) - 0.5
+		|| actualBodySize < Number(detailedBodySize.value) - 0.5;
+	statusMessage.value = wasScaled
+		? `Text automatically scaled to fit (${Math.round(actualTitleSize)} px title, ${Math.round(actualSubtitleSize)} px subheading, ${Math.round(actualBodySize)} px body).`
+		: '';
+};
+
 const renderCanvas = () => {
 	if (!previewCanvas.value) return;
+	previewCanvas.value.width = canvasWidth.value;
+	previewCanvas.value.height = canvasHeight.value;
 	const ctx = previewCanvas.value.getContext('2d');
 	if (!ctx) return;
+	ctx.clearRect(0, 0, canvasWidth.value, canvasHeight.value);
+
+	if (template.value === 'detailed-information') {
+		renderDetailedInformation(ctx);
+		return;
+	}
 
 	let actualTitleSize = Number(titleSize.value);
 	let actualBulletSize = Number(bulletSize.value);
 	let layout = measureLayout(ctx, actualTitleSize, actualBulletSize);
 	let attempts = 0;
 
-	while (layout.totalHeight > height && attempts < 160 && (actualTitleSize > 28 || actualBulletSize > 18)) {
-		const scale = Math.max(0.92, Math.min(0.985, height / layout.totalHeight));
+	while (layout.totalHeight > canvasHeight.value && attempts < 160 && (actualTitleSize > 28 || actualBulletSize > 18)) {
+		const scale = Math.max(0.92, Math.min(0.985, canvasHeight.value / layout.totalHeight));
 		actualTitleSize = Math.max(28, actualTitleSize * scale);
 		actualBulletSize = Math.max(18, actualBulletSize * scale);
 		layout = measureLayout(ctx, actualTitleSize, actualBulletSize);
 		attempts += 1;
 	}
 
-	ctx.clearRect(0, 0, width, height);
-	drawBackground(ctx, width, height, background, Number(cornerRadius.value));
+	drawBackground(ctx, canvasWidth.value, canvasHeight.value, background, Number(cornerRadius.value));
 	ctx.save();
-	roundedRectPath(ctx, 0, 0, width, height, Number(cornerRadius.value));
+	roundedRectPath(ctx, 0, 0, canvasWidth.value, canvasHeight.value, Number(cornerRadius.value));
 	ctx.clip();
 
 	let y = drawTitle(ctx, layout.titleLines, actualTitleSize, padding, padding, layout.titleLineHeight);
@@ -198,19 +321,32 @@ const removeBullet = (index: number) => {
 	bullets.value.splice(index, 1);
 };
 
+const addDetailedBullet = () => {
+	if (detailedBullets.value.length >= 10) {
+		statusMessage.value = 'A maximum of ten detailed bullet points can be added.';
+		return;
+	}
+	detailedBullets.value.push('');
+};
+
+const removeDetailedBullet = (index: number) => {
+	detailedBullets.value.splice(index, 1);
+};
+
 const exportImage = () => {
 	if (!previewCanvas.value) return;
 	renderCanvas();
-	const filename = (title.value || 'product-information').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'product-information';
+	const activeTitle = template.value === 'detailed-information' ? detailedTitle.value : title.value;
+	const filename = (activeTitle || 'product-information').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'product-information';
 	const exportCanvas = format.value === 'jpeg' ? document.createElement('canvas') : previewCanvas.value;
 
 	if (format.value === 'jpeg') {
-		exportCanvas.width = width;
-		exportCanvas.height = height;
+		exportCanvas.width = canvasWidth.value;
+		exportCanvas.height = canvasHeight.value;
 		const exportContext = exportCanvas.getContext('2d');
 		if (!exportContext) return;
 		exportContext.fillStyle = '#ffffff';
-		exportContext.fillRect(0, 0, width, height);
+		exportContext.fillRect(0, 0, canvasWidth.value, canvasHeight.value);
 		exportContext.drawImage(previewCanvas.value, 0, 0);
 	}
 
@@ -226,7 +362,7 @@ const exportImage = () => {
 		link.download = `${filename}.${format.value === 'jpeg' ? 'jpg' : 'png'}`;
 		link.click();
 		URL.revokeObjectURL(url);
-		statusMessage.value = `${format.value.toUpperCase()} exported at ${width} × ${height} pixels.`;
+		statusMessage.value = `${format.value.toUpperCase()} exported at ${canvasWidth.value} × ${canvasHeight.value} pixels.`;
 	}, mimeType, 0.94);
 };
 
@@ -262,6 +398,7 @@ const loadFonts = async () => {
 	if ('fonts' in document) {
 		await Promise.all([
 			document.fonts.load('800 96px "Aktiv Grotesk"'),
+			document.fonts.load('700 48px "Aktiv Grotesk"'),
 			document.fonts.load('400 52px "Aktiv Grotesk"'),
 			document.fonts.ready,
 		]);
@@ -272,7 +409,23 @@ onMounted(() => {
 	loadFonts().finally(scheduleRender);
 });
 
-watch([title, titleSize, bullets, bulletSize, cornerRadius, format], scheduleRender, { deep: true });
+watch([
+	template,
+	title,
+	titleSize,
+	bullets,
+	bulletSize,
+	cornerRadius,
+	detailedTitle,
+	detailedSubtitle,
+	detailedIntroduction,
+	detailedBullets,
+	detailedTitleSize,
+	detailedSubtitleSize,
+	detailedBodySize,
+	detailedCornerRadius,
+	format,
+], scheduleRender, { deep: true });
 </script>
 
 <template>
@@ -284,15 +437,16 @@ watch([title, titleSize, bullets, bulletSize, cornerRadius, format], scheduleRen
 				<div class="preview-shell">
 					<canvas
 						ref="previewCanvas"
-						width="1400"
-						height="980"
+						:width="canvasWidth"
+						:height="canvasHeight"
+						:style="{ aspectRatio: `${canvasWidth} / ${canvasHeight}` }"
 						role="img"
 						aria-label="Generated product information image preview"
 					>
 						Your browser does not support the canvas preview.
 					</canvas>
 				</div>
-				<p class="resolution-note">Output resolution: 1400 × 980 pixels. Preview is scaled down to fit your screen.</p>
+				<p class="resolution-note">Output resolution: {{ canvasWidth }} × {{ canvasHeight }} pixels. Preview is scaled down to fit your screen.</p>
 				<p v-if="statusMessage" class="generator-status" aria-live="polite">{{ statusMessage }}</p>
 			</section>
 
@@ -305,56 +459,101 @@ watch([title, titleSize, bullets, bulletSize, cornerRadius, format], scheduleRen
 				</div>
 				<hr class="heading-hr" />
 
-				<div class="control-group">
-					<label for="product-image-title">Main Title</label>
-					<input id="product-image-title" v-model="title" type="text" maxlength="100" />
-					<div class="range-row">
-						<label for="product-image-title-size">Title Size</label>
-						<input id="product-image-title-size" v-model.number="titleSize" type="range" min="48" max="140" />
-						<output for="product-image-title-size">{{ titleSize }}</output>
-					</div>
+				<div class="control-group template-control">
+					<label for="product-image-template">Template</label>
+					<select id="product-image-template" v-model="template">
+						<option value="title-bullets">Title and bullet points</option>
+						<option value="detailed-information">Detailed information</option>
+					</select>
 				</div>
 
-				<div class="control-group bullets-group">
-					<div class="group-heading">
-						<span>Bullet Points</span>
-						<button class="add-button" type="button" @click="addBullet">+ Add Line</button>
-					</div>
-
-					<div class="bullet-inputs">
-						<div v-for="(_, index) in bullets" :key="index" class="bullet-input-row">
-							<label class="sr-only" :for="`product-image-bullet-${index + 1}`">Bullet point {{ index + 1 }}</label>
-							<textarea
-								:id="`product-image-bullet-${index + 1}`"
-								v-model="bullets[index]"
-								maxlength="220"
-								rows="2"
-								placeholder="Enter a bullet point"
-							></textarea>
-							<button
-								class="remove-button"
-								type="button"
-								:aria-label="`Remove bullet point ${index + 1}`"
-								@click="removeBullet(index)"
-							>
-								<svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><path d="M8 8v10m4-10v10m4-10v10M5 5h14M9 5V3h6v2m3 0-1 16H7L6 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
-							</button>
+				<template v-if="template === 'title-bullets'">
+					<div class="control-group">
+						<label for="product-image-title">Main Title</label>
+						<input id="product-image-title" v-model="title" type="text" maxlength="100" />
+						<div class="range-row">
+							<label for="product-image-title-size">Title Size</label>
+							<input id="product-image-title-size" v-model.number="titleSize" type="range" min="48" max="140" />
+							<output for="product-image-title-size">{{ titleSize }}</output>
 						</div>
 					</div>
 
-					<div class="range-row">
-						<label for="product-image-bullet-size">Text Size</label>
-						<input id="product-image-bullet-size" v-model.number="bulletSize" type="range" min="28" max="80" />
-						<output for="product-image-bullet-size">{{ bulletSize }}</output>
+					<div class="control-group bullets-group">
+						<div class="group-heading">
+							<span>Bullet Points</span>
+							<button class="add-button" type="button" @click="addBullet">+ Add Line</button>
+						</div>
+
+						<div class="bullet-inputs">
+							<div v-for="(_, index) in bullets" :key="index" class="bullet-input-row">
+								<label class="sr-only" :for="`product-image-bullet-${index + 1}`">Bullet point {{ index + 1 }}</label>
+								<textarea :id="`product-image-bullet-${index + 1}`" v-model="bullets[index]" maxlength="220" rows="2" placeholder="Enter a bullet point"></textarea>
+								<button class="remove-button" type="button" :aria-label="`Remove bullet point ${index + 1}`" @click="removeBullet(index)">
+									<svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><path d="M8 8v10m4-10v10m4-10v10M5 5h14M9 5V3h6v2m3 0-1 16H7L6 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+								</button>
+							</div>
+						</div>
+
+						<div class="range-row">
+							<label for="product-image-bullet-size">Text Size</label>
+							<input id="product-image-bullet-size" v-model.number="bulletSize" type="range" min="28" max="80" />
+							<output for="product-image-bullet-size">{{ bulletSize }}</output>
+						</div>
 					</div>
-				</div>
+				</template>
+
+				<template v-else>
+					<div class="control-group detailed-copy-group">
+						<label for="detailed-image-title">Main Title</label>
+						<input id="detailed-image-title" v-model="detailedTitle" type="text" maxlength="120" />
+						<div class="range-row">
+							<label for="detailed-image-title-size">Title Size</label>
+							<input id="detailed-image-title-size" v-model.number="detailedTitleSize" type="range" min="42" max="110" />
+							<output for="detailed-image-title-size">{{ detailedTitleSize }}</output>
+						</div>
+
+						<label for="detailed-image-subtitle">Subheading</label>
+						<input id="detailed-image-subtitle" v-model="detailedSubtitle" type="text" maxlength="100" />
+						<div class="range-row">
+							<label for="detailed-image-subtitle-size">Heading Size</label>
+							<input id="detailed-image-subtitle-size" v-model.number="detailedSubtitleSize" type="range" min="28" max="72" />
+							<output for="detailed-image-subtitle-size">{{ detailedSubtitleSize }}</output>
+						</div>
+
+						<label for="detailed-image-introduction">Introduction</label>
+						<textarea id="detailed-image-introduction" v-model="detailedIntroduction" maxlength="420" rows="4"></textarea>
+					</div>
+
+					<div class="control-group bullets-group">
+						<div class="group-heading">
+							<span>Bullet Points</span>
+							<button class="add-button" type="button" @click="addDetailedBullet">+ Add Line</button>
+						</div>
+						<div class="bullet-inputs compact-bullets">
+							<div v-for="(_, index) in detailedBullets" :key="index" class="bullet-input-row">
+								<label class="sr-only" :for="`detailed-image-bullet-${index + 1}`">Detailed bullet point {{ index + 1 }}</label>
+								<input :id="`detailed-image-bullet-${index + 1}`" v-model="detailedBullets[index]" type="text" maxlength="180" placeholder="Enter a bullet point" />
+								<button class="remove-button" type="button" :aria-label="`Remove detailed bullet point ${index + 1}`" @click="removeDetailedBullet(index)">
+									<svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16"><path d="M8 8v10m4-10v10m4-10v10M5 5h14M9 5V3h6v2m3 0-1 16H7L6 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
+								</button>
+							</div>
+						</div>
+
+						<div class="range-row">
+							<label for="detailed-image-body-size">Body Size</label>
+							<input id="detailed-image-body-size" v-model.number="detailedBodySize" type="range" min="24" max="64" />
+							<output for="detailed-image-body-size">{{ detailedBodySize }}</output>
+						</div>
+					</div>
+				</template>
 
 				<div class="control-group image-settings">
 					<span class="group-label">Image Settings</span>
 					<div class="range-row">
-						<label for="product-image-radius">Corner Radius</label>
-						<input id="product-image-radius" v-model.number="cornerRadius" type="range" min="0" max="96" />
-						<output for="product-image-radius">{{ cornerRadius }}</output>
+						<label :for="template === 'detailed-information' ? 'detailed-image-radius' : 'product-image-radius'">Corner Radius</label>
+						<input v-if="template === 'detailed-information'" id="detailed-image-radius" v-model.number="detailedCornerRadius" type="range" min="0" max="120" />
+						<input v-else id="product-image-radius" v-model.number="cornerRadius" type="range" min="0" max="96" />
+						<output>{{ template === 'detailed-information' ? detailedCornerRadius : cornerRadius }}</output>
 					</div>
 					<div class="select-row">
 						<label for="product-image-format">Export Format</label>
@@ -492,6 +691,10 @@ watch([title, titleSize, bullets, bulletSize, cornerRadius, format], scheduleRen
 		font-size: 0.875rem;
 		font-weight: 700;
 		margin-bottom: 0.7rem;
+	}
+
+	.detailed-copy-group > label:not(:first-child) {
+		margin-top: 1.25rem;
 	}
 
 	.group-heading {
