@@ -1,0 +1,56 @@
+---
+title: Media Grid for PLPs and Search
+description: Create SFCC image content assets for media tiles on product listing and search pages.
+---
+
+import MediaGridAssetGenerator from '../../../components/pwa/MediaGridAssetGenerator.astro';
+
+Use media-grid content assets to place an image tile on a product listing page (PLP) or search results page. Create the asset for the desired category or search term; for example, `pwa-battery-slot-5` can be used for the Batteries PLP.
+
+## Create the asset content
+
+<MediaGridAssetGenerator />
+
+## Image fields
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `type` | Yes | Must be `image` for an image tile. |
+| `alt` | Yes | Accessible alternative text that describes the image. |
+| `title` | Yes | The title of the content. |
+| `url` | Yes | The destination page opened from the tile. |
+| `imageSrc` | Yes | Image used on desktop and tablet, and as the mobile fallback. |
+| `mobileImageSrc` | No | Mobile-specific image. Use a crop with a height of 200px. |
+
+:::note[Mobile image fallback]
+When `mobileImageSrc` is omitted, the image from `imageSrc` is used on desktop, tablet, and mobile.
+:::
+
+## Example with a mobile image
+
+```text
+#[[
+{
+  "type": "image",
+  "alt": "image alt text 5",
+  "title": "battery slot 5",
+  "url": "/motoring/batteries/car-batteries/",
+  "imageSrc": "https://cdn.media.amplience.net/i/washford/Haluk-NBOP-batteries-inline-370x890-dt?fmt=auto",
+  "mobileImageSrc": "https://cdn.media.amplience.net/i/washford/haluk-mission-spot-battery-maintenace?w=400"
+}
+]]#
+```
+
+## Example without a mobile image
+
+```text
+#[[
+{
+  "type": "image",
+  "alt": "image alt text 5",
+  "title": "battery slot 5",
+  "url": "/motoring/batteries/car-batteries/",
+  "imageSrc": "https://cdn.media.amplience.net/i/washford/Haluk-NBOP-batteries-inline-370x890-dt?fmt=auto"
+}
+]]#
+```

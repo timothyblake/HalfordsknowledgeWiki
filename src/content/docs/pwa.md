@@ -18,3 +18,5 @@ Progressive Web Apps combine the reach of the web with the capabilities of nativ
 ## Guides & Documentation
 
 - [Overview](/pwa/)
+- [Filtered Links Converter](/pwa/filtered-links-converter/)
+- [Media Grid for PLPs and Search](/pwa/media-grid-plps-search/)

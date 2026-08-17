@@ -1,0 +1,398 @@
+---
+const example = {
+	type: "image",
+	alt: "image alt text 5",
+	title: "battery slot 5",
+	url: "/motoring/batteries/car-batteries/",
+	imageSrc:
+		"https://cdn.media.amplience.net/i/washford/Haluk-NBOP-batteries-inline-370x890-dt?fmt=auto",
+	mobileImageSrc:
+		"https://cdn.media.amplience.net/i/washford/haluk-mission-spot-battery-maintenace?w=400",
+};
+
+---
+
+<section class="asset-builder" aria-labelledby="media-grid-builder-title">
+	<header class="asset-builder__header">
+		<div class="asset-builder__heading">
+			<svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+				<rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.6" />
+				<circle cx="8.5" cy="9" r="1.5" fill="none" stroke="currentColor" stroke-width="1.6" />
+				<path d="m5 18 4.2-4.2 2.7 2.7 2.8-3 4.3 4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+			</svg>
+			<h2 id="media-grid-builder-title">Media Grid Asset</h2>
+		</div>
+		<hr class="asset-builder__divider" />
+		<p class="asset-builder__intro">Complete the fields below, then copy the generated content into your SFCC content asset.</p>
+	</header>
+
+	<form id="media-grid-form" novalidate>
+		<div class="asset-builder__grid">
+			<label>
+				<span>Type</span>
+				<input name="type" value="image" readonly aria-describedby="type-hint" />
+				<small id="type-hint">Image tiles must use <code>image</code>.</small>
+			</label>
+
+			<label>
+				<span>Title <em>Required</em></span>
+				<input name="title" placeholder={example.title} required />
+				<small>A clear internal title for the tile.</small>
+			</label>
+
+			<label class="asset-builder__wide">
+				<span>Alt text <em>Required</em></span>
+				<input name="alt" placeholder={example.alt} required />
+				<small>Describe the image for customers using assistive technology.</small>
+			</label>
+
+			<label class="asset-builder__wide">
+				<span>Destination URL <em>Required</em></span>
+				<input name="url" placeholder={example.url} required />
+				<small>The page opened when a customer selects the tile.</small>
+			</label>
+
+			<label class="asset-builder__wide">
+				<span>Desktop and tablet image URL <em>Required</em></span>
+				<input name="imageSrc" type="url" placeholder={example.imageSrc} required />
+				<small>This image is also used on mobile when no mobile image is supplied.</small>
+			</label>
+
+			<label class="asset-builder__wide">
+				<span>Mobile image URL <em>Optional</em></span>
+				<input name="mobileImageSrc" type="url" placeholder={example.mobileImageSrc} />
+				<small>Use a mobile crop with a height of 200px. Leave blank to use the desktop image.</small>
+			</label>
+		</div>
+
+		<div class="asset-builder__actions">
+			<button class="asset-builder__button asset-builder__button--primary" type="submit">Generate asset content</button>
+			<button class="asset-builder__button" id="reset-media-grid" type="button">Clear form</button>
+		</div>
+	</form>
+
+	<div class="asset-builder__result" aria-labelledby="media-grid-output-title">
+		<div class="asset-builder__result-heading">
+			<div>
+				<p class="asset-builder__eyebrow">Generated output</p>
+				<h3 id="media-grid-output-title">SFCC asset content</h3>
+			</div>
+			<span id="media-grid-status" role="status" aria-live="polite">Complete the form to generate the asset.</span>
+		</div>
+		<textarea id="media-grid-output" rows="15" readonly spellcheck="false" placeholder="Generated SFCC asset content will appear here."></textarea>
+		<button class="asset-builder__button" id="copy-media-grid" type="button">Copy asset content</button>
+	</div>
+</section>
+
+<script>
+	const form = document.querySelector<HTMLFormElement>('#media-grid-form');
+	const output = document.querySelector<HTMLTextAreaElement>('#media-grid-output');
+	const status = document.querySelector<HTMLElement>('#media-grid-status');
+	const copyButton = document.querySelector<HTMLButtonElement>('#copy-media-grid');
+	const resetButton = document.querySelector<HTMLButtonElement>('#reset-media-grid');
+
+	const setStatus = (message: string) => {
+		if (status) status.textContent = message;
+	};
+
+	const generate = () => {
+		if (!form || !output) return;
+		if (!form.reportValidity()) {
+			setStatus('Complete the required fields.');
+			return;
+		}
+
+		const data = new FormData(form);
+		const asset: Record<string, string> = {
+			type: 'image',
+			alt: String(data.get('alt') ?? '').trim(),
+			title: String(data.get('title') ?? '').trim(),
+			url: String(data.get('url') ?? '').trim(),
+			imageSrc: String(data.get('imageSrc') ?? '').trim(),
+		};
+		const mobileImageSrc = String(data.get('mobileImageSrc') ?? '').trim();
+		if (mobileImageSrc) asset.mobileImageSrc = mobileImageSrc;
+
+		output.value = `#[[\n${JSON.stringify(asset, null, 2)}\n]]#`;
+		setStatus(mobileImageSrc ? 'Mobile image included.' : 'Desktop image will be used on mobile.');
+	};
+
+	form?.addEventListener('submit', (event) => {
+		event.preventDefault();
+		generate();
+	});
+
+	resetButton?.addEventListener('click', () => {
+		form?.reset();
+		if (output) output.value = '';
+		setStatus('Complete the form to generate the asset.');
+	});
+
+	copyButton?.addEventListener('click', async () => {
+		if (!output?.value) return;
+		try {
+			await navigator.clipboard.writeText(output.value);
+			setStatus('Asset content copied.');
+		} catch {
+			output.select();
+			document.execCommand('copy');
+			setStatus('Asset content copied.');
+		}
+	});
+</script>
+
+<style>
+	@font-face {
+		font-family: 'Aktiv Grotesk';
+		src: url('/fonts/AktivGrotesk-Regular.woff') format('woff');
+		font-style: normal;
+		font-weight: 400;
+		font-display: swap;
+	}
+
+	@font-face {
+		font-family: 'Aktiv Grotesk';
+		src: url('/fonts/AktivGrotesk-Bold.woff') format('woff');
+		font-style: normal;
+		font-weight: 700;
+		font-display: swap;
+	}
+
+	.asset-builder {
+		--ui-background: #ffffff;
+		--ui-foreground: #09090b;
+		--ui-muted: #f4f4f5;
+		--ui-muted-foreground: #71717a;
+		--ui-border: #e4e4e7;
+		--ui-primary: #18181b;
+		--ui-primary-hover: #27272a;
+		width: min(100%, 44rem);
+		margin: 1.25rem auto 2rem;
+		padding: 1.5rem;
+		border: 1px solid var(--ui-border);
+		border-radius: 0.75rem;
+		background: var(--ui-background);
+		box-shadow: 0 1px 2px rgb(0 0 0 / 5%);
+		color: var(--ui-foreground);
+		font-family: 'Aktiv Grotesk', Arial, sans-serif;
+	}
+
+	.asset-builder__heading {
+		display: flex;
+		align-items: center;
+		gap: 0.65rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.asset-builder__heading svg {
+		width: 2rem;
+		height: 2rem;
+		padding: 0.4rem;
+		border-radius: 0.5rem;
+		background: var(--ui-muted);
+	}
+
+	.asset-builder__heading h2 {
+		margin: 0;
+		padding: 0;
+		border: 0;
+		font-family: inherit;
+		font-size: 1.25rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+	}
+
+	.asset-builder__divider {
+		margin: 0.75rem 0 1.25rem;
+		border: 0;
+		border-top: 1px solid var(--ui-border);
+	}
+
+	.asset-builder__intro {
+		margin: 0;
+		color: var(--ui-muted-foreground);
+		font-size: 0.875rem;
+		line-height: 1.55;
+	}
+
+	.asset-builder__grid {
+		display: grid;
+		grid-template-columns: 1fr;
+		margin-top: 1.25rem;
+	}
+
+	.asset-builder label {
+		display: grid;
+		align-content: start;
+		gap: 0.45rem;
+		margin-bottom: 1.35rem;
+		padding-bottom: 1.35rem;
+		border-bottom: 1px solid var(--ui-border);
+	}
+
+	.asset-builder label > span {
+		color: var(--ui-foreground);
+		font-size: 0.875rem;
+		font-weight: 700;
+	}
+
+	.asset-builder label em {
+		margin-left: 0.35rem;
+		color: var(--ui-muted-foreground);
+		font-size: 0.68rem;
+		font-style: normal;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+
+	.asset-builder input,
+	.asset-builder textarea {
+		width: 100%;
+		box-sizing: border-box;
+		border: 1px solid var(--ui-border);
+		border-radius: 0.5rem;
+		background: var(--ui-background);
+		color: var(--ui-foreground);
+		font: inherit;
+		font-size: 0.875rem;
+		box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
+		transition: border-color 150ms ease, box-shadow 150ms ease;
+	}
+
+	.asset-builder input {
+		padding: 0.625rem 0.75rem;
+	}
+
+	.asset-builder input[readonly] {
+		color: var(--ui-muted-foreground);
+		background: var(--ui-muted);
+	}
+
+	.asset-builder input:focus-visible,
+	.asset-builder textarea:focus-visible {
+		border-color: #a1a1aa;
+		outline: 0;
+		box-shadow: 0 0 0 3px rgb(24 24 27 / 12%);
+	}
+
+	.asset-builder small {
+		color: var(--ui-muted-foreground);
+		font-size: 0.75rem;
+		line-height: 1.45;
+	}
+
+	.asset-builder__actions {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.asset-builder__button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 2.75rem;
+		box-sizing: border-box;
+		padding: 0 1rem;
+		border: 1px solid var(--ui-border);
+		border-radius: 0.5rem;
+		background: var(--ui-background);
+		color: var(--ui-foreground);
+		font: inherit;
+		font-size: 0.875rem;
+		font-weight: 700;
+		box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+		cursor: pointer;
+		transition: background-color 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+	}
+
+	.asset-builder__button:hover {
+		border-color: #a1a1aa;
+		background: var(--ui-muted);
+		box-shadow: 0 2px 4px rgb(0 0 0 / 6%);
+	}
+
+	.asset-builder__button--primary {
+		border-color: transparent;
+		background: var(--ui-primary);
+		color: #fff;
+	}
+
+	.asset-builder__button--primary:hover {
+		border-color: transparent;
+		background: var(--ui-primary-hover);
+		box-shadow: 0 2px 4px rgb(0 0 0 / 12%);
+	}
+
+	.asset-builder__button:focus-visible {
+		outline: 2px solid var(--ui-primary);
+		outline-offset: 2px;
+	}
+
+	.asset-builder__result {
+		margin-top: 1.5rem;
+		padding-top: 1.25rem;
+		border-top: 1px solid var(--ui-border);
+	}
+
+	.asset-builder__result-heading {
+		display: flex;
+		align-items: end;
+		justify-content: space-between;
+		gap: 1rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.asset-builder__result-heading h3 {
+		margin: 0;
+		padding: 0;
+		border: 0;
+		color: var(--ui-foreground);
+		font-family: inherit;
+		font-size: 0.82rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
+	.asset-builder__eyebrow {
+		display: none;
+	}
+
+	#media-grid-status {
+		color: var(--ui-muted-foreground);
+		font-size: 0.78rem;
+		text-align: right;
+	}
+
+	.asset-builder textarea {
+		display: block;
+		min-height: 18rem;
+		padding: 0.85rem;
+		resize: vertical;
+		background: var(--ui-muted);
+		font: 0.82rem/1.55 var(--__sl-font-mono);
+		tab-size: 2;
+	}
+
+	.asset-builder__result > .asset-builder__button {
+		margin-top: 0.75rem;
+	}
+
+	@media (max-width: 40rem) {
+		.asset-builder {
+			padding: 1.1rem;
+		}
+
+		.asset-builder__result-heading {
+			align-items: start;
+			flex-direction: column;
+		}
+
+		#media-grid-status {
+			text-align: left;
+		}
+	}
+</style>

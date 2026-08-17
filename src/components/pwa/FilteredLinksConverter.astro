@@ -1,0 +1,266 @@
+<section class="converter" aria-labelledby="filtered-links-title">
+	<div class="converter__header">
+		<div>
+			<p class="converter__eyebrow">PWA utility</p>
+			<h2 id="filtered-links-title">Convert filtered links</h2>
+			<p>
+				Paste HTML containing legacy <code>prefn</code> and <code>prefv</code> filters. Every
+				matching link is converted to the PWA <code>fq</code> format.
+			</p>
+		</div>
+	</div>
+
+	<div class="converter__field">
+		<div class="converter__label-row">
+			<label for="filtered-links-input">HTML to convert</label>
+			<span>Supports multiple filters and values</span>
+		</div>
+		<textarea
+			id="filtered-links-input"
+			rows="12"
+			spellcheck="false"
+			placeholder={'<a href="$url(\'Search-Show\',\'cgid\',\'501209\')$?prefn1=brandname&prefv1=Boardman">Boardman</a>'}
+		></textarea>
+	</div>
+
+	<div class="converter__actions">
+		<button class="button button--primary" id="convert-filtered-links" type="button">Convert links</button>
+		<button class="button" id="clear-filtered-links" type="button">Clear</button>
+	</div>
+
+	<div class="converter__field converter__result" hidden>
+		<div class="converter__label-row">
+			<label for="filtered-links-output">Converted HTML</label>
+			<span id="filtered-links-status" role="status" aria-live="polite"></span>
+		</div>
+		<textarea id="filtered-links-output" rows="12" spellcheck="false" readonly></textarea>
+		<div class="converter__actions converter__actions--result">
+			<button class="button" id="copy-filtered-links" type="button">Copy converted HTML</button>
+		</div>
+	</div>
+</section>
+
+<script>
+	import { convertBrandLinks } from '../../utils/convert-filtered-links.js';
+
+	const input = document.querySelector('#filtered-links-input');
+	const output = document.querySelector('#filtered-links-output');
+	const result = document.querySelector('.converter__result');
+	const status = document.querySelector('#filtered-links-status');
+	const convertButton = document.querySelector('#convert-filtered-links');
+	const copyButton = document.querySelector('#copy-filtered-links');
+	const clearButton = document.querySelector('#clear-filtered-links');
+
+	function setStatus(message) {
+		if (status) status.textContent = message;
+	}
+
+	convertButton?.addEventListener('click', () => {
+		if (!(input instanceof HTMLTextAreaElement) || !(output instanceof HTMLTextAreaElement)) return;
+
+		const source = input.value;
+		if (!source.trim()) {
+			input.focus();
+			setStatus('Add some HTML first.');
+			if (result instanceof HTMLElement) result.hidden = false;
+			return;
+		}
+
+		const converted = convertBrandLinks(source);
+		output.value = converted.html;
+		if (result instanceof HTMLElement) result.hidden = false;
+		setStatus(
+			converted.count === 0
+				? 'No legacy filter links found.'
+				: `${converted.count} ${converted.count === 1 ? 'link' : 'links'} converted.`,
+		);
+	});
+
+	copyButton?.addEventListener('click', async () => {
+		if (!(output instanceof HTMLTextAreaElement) || !output.value) return;
+
+		try {
+			await navigator.clipboard.writeText(output.value);
+			setStatus('Converted HTML copied.');
+		} catch {
+			output.select();
+			document.execCommand('copy');
+			setStatus('Converted HTML copied.');
+		}
+	});
+
+	clearButton?.addEventListener('click', () => {
+		if (input instanceof HTMLTextAreaElement) {
+			input.value = '';
+			input.focus();
+		}
+		if (output instanceof HTMLTextAreaElement) output.value = '';
+		if (result instanceof HTMLElement) result.hidden = true;
+		setStatus('');
+	});
+</script>
+
+<style>
+	.converter {
+		margin-block: 1.5rem;
+		padding: clamp(1rem, 3vw, 1.5rem);
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: 0.75rem;
+		background: var(--sl-color-gray-7);
+		box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+	}
+
+	.converter__header h2 {
+		margin: 0.15rem 0 0.5rem;
+		font-size: clamp(1.25rem, 3vw, 1.5rem);
+		color: var(--sl-color-white);
+	}
+
+	.converter__header p:last-child {
+		max-width: 68ch;
+		margin: 0;
+		color: var(--sl-color-gray-2);
+	}
+
+	.converter__eyebrow {
+		margin: 0;
+		font-size: 0.75rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--sl-color-accent-high);
+	}
+
+	.converter__field {
+		margin-top: 1.25rem;
+	}
+
+	.converter__label-row {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+		margin-bottom: 0.45rem;
+	}
+
+	.converter__label-row label {
+		font-weight: 650;
+		color: var(--sl-color-white);
+	}
+
+	.converter__label-row span {
+		font-size: 0.78rem;
+		text-align: right;
+		color: var(--sl-color-gray-3);
+	}
+
+	textarea {
+		display: block;
+		width: 100%;
+		min-height: 12rem;
+		padding: 0.85rem;
+		resize: vertical;
+		border: 1px solid var(--sl-color-gray-4);
+		border-radius: 0.5rem;
+		outline: none;
+		background: var(--sl-color-black);
+		color: var(--sl-color-white);
+		font: 0.82rem/1.55 var(--__sl-font-mono);
+		tab-size: 2;
+	}
+
+	textarea:focus {
+		border-color: var(--sl-color-accent);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--sl-color-accent) 22%, transparent);
+	}
+
+	textarea[readonly] {
+		background: var(--sl-color-gray-6);
+	}
+
+	.converter__actions {
+		display: flex;
+		align-items: stretch;
+		flex-wrap: wrap;
+		gap: 0.65rem;
+		margin-top: 0.85rem;
+	}
+
+	.converter__actions > .button {
+		margin: 0;
+	}
+
+	.converter__actions:not(.converter__actions--result) .button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex: 1 1 10rem;
+		height: 2.75rem;
+		min-height: 2.75rem;
+		box-sizing: border-box;
+	}
+
+	.converter__actions--result {
+		justify-content: flex-end;
+	}
+
+	.button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		height: 2.75rem;
+		min-height: 2.75rem;
+		padding: 0 1rem;
+		border: 1px solid #e4e4e7;
+		border-radius: 0.5rem;
+		background: #fff;
+		color: #09090b;
+		font: inherit;
+		font-size: 0.875rem;
+		font-weight: 700;
+		line-height: 1;
+		box-sizing: border-box;
+		box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+		cursor: pointer;
+		transition: background-color 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+	}
+
+	.button:hover {
+		border-color: #a1a1aa;
+		background: #f4f4f5;
+		box-shadow: 0 2px 4px rgb(0 0 0 / 6%);
+	}
+
+	.button:focus-visible {
+		outline: 3px solid var(--sl-color-accent-high);
+		outline-offset: 2px;
+	}
+
+	.button--primary {
+		border-color: transparent;
+		background: #18181b;
+		color: #fff;
+	}
+
+	.button--primary:hover {
+		border-color: transparent;
+		background: #27272a;
+		box-shadow: 0 2px 4px rgb(0 0 0 / 12%);
+	}
+
+	.converter__result[hidden] {
+		display: none;
+	}
+
+	@media (max-width: 34rem) {
+		.converter__label-row {
+			align-items: flex-start;
+			flex-direction: column;
+			gap: 0.2rem;
+		}
+
+		.converter__label-row span {
+			text-align: left;
+		}
+	}
+</style>

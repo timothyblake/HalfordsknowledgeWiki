@@ -1,0 +1,28 @@
+---
+title: Filtered Links Converter
+description: Convert legacy Salesforce filtered links into the Halfords PWA filter query format.
+---
+
+import FilteredLinksConverter from '../../../components/pwa/FilteredLinksConverter.astro';
+
+Use this tool to update filtered links embedded in HTML. It converts legacy numbered filter pairs such as `prefn1` and `prefv1` into the PWA `fq` format without changing the rest of your markup.
+
+The converter supports more than one filter on the same link. Values separated by a pipe (`|`) or comma are kept together in the corresponding `fq` filter.
+
+<FilteredLinksConverter />
+
+## Example
+
+```html
+<a href="$url('Search-Show','cgid','501209')$?prefn1=brandname&prefv1=Boardman|Altura">
+	Shop brands
+</a>
+```
+
+becomes:
+
+```html
+<a href="$url('Search-Show','cgid','501209')$?fq=Brand%3A%22Boardman%22%2C%22Altura%22">
+	Shop brands
+</a>
+```

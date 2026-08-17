@@ -61,7 +61,11 @@ export default defineConfig({
 				},
 				{
 					label: 'Halfords PWA',
-					items: [{ label: 'Overview', slug: 'pwa' }],
+					items: [
+						{ label: 'Overview', slug: 'pwa' },
+						{ label: 'Filtered Links Converter', slug: 'pwa/filtered-links-converter' },
+						{ label: 'Media Grid for PLPs and Search', slug: 'pwa/media-grid-plps-search' },
+					],
 				},
 				{
 					label: 'Salesforce',
